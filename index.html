@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Escher</title>
+        <style>
+            :root,
+            html,
+            body {
+                height: 100%;
+                background-color: #594732;
+            }
+
+            body {
+                display: grid;
+                margin: 0;
+                padding: 0;
+                justify-content: stretch;
+                align-content: stretch;
+                grid-template-columns: 100%;
+                grid-template-rows: 100%;
+            }
+            .layer {
+                align-self: stretch;
+                justify-self: stretch;
+                width: 100%;
+                height: 100%;
+                display: block;
+                grid-area: 1 / 1 / -1 / -1;
+                margin: 0;
+                padding: 0;
+                font-size: 5em;
+            }
+            .control {
+                cursor: move;
+            }
+
+            .active {
+                fill: aquamarine;
+            }
+            #debug {
+                display: none;
+            }
+            circle {
+                opacity: 0.2;
+            }
+            pre {
+                pointer-events: none;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="cnv" class="layer"></canvas>
+        <svg id="vg" class="layer" viewBox="-100 -100 200 200">
+            <circle id="ctrl" r="4" cx="0" cy="0" class="control"></circle>
+        </svg>
+        <pre id="debug" class="layer"></pre>
+        <script src="regl.js"></script>
+        <script type="module">
+            function loadImage(url) {
+                return new Promise((res, fail) => {
+                    const texture = document.createElement("img");
+                    texture.addEventListener("load", () => {
+                        res(texture);
+                    });
+                    texture.addEventListener("error", (error) => {
+                        fail(error);
+                    });
+                    texture.src = url;
+                });
+            }
+
+            const ctrl = { x: 0, y: 0 };
+            let zoom = 0;
+
+            window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
+                zoom += evt.deltaY / 1400;
+                zoom = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                window.debug.textContent = Math.round(zoom * 100) / 100;
+            });
+
+            window.ctrl.addEventListener("pointerdown", (evt) => {
+                evt.currentTarget.setPointerCapture(evt.pointerId);
+
+                evt.currentTarget.classList.add("active");
+            });
+
+            window.ctrl.addEventListener("pointermove", (evt) => {
+                if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
+                    const owner = evt.currentTarget.ownerSVGElement;
+                    const pt = owner.createSVGPoint();
+                    pt.x = evt.clientX;
+                    pt.y = evt.clientY;
+
+                    var svgPos = pt.matrixTransform(
+                        owner.getScreenCTM().inverse(),
+                    );
+                    svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
+                    svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+
+                    ctrl.x = svgPos.x / 100;
+                    ctrl.y = svgPos.y / 100;
+                    evt.currentTarget.setAttribute("cx", svgPos.x);
+                    evt.currentTarget.setAttribute("cy", svgPos.y);
+                }
+            });
+
+            window.ctrl.addEventListener("gotpointercapture", (evt) => {
+                evt.currentTarget.classList.add("active");
+            });
+
+            window.ctrl.addEventListener("lostpointercapture", (evt) => {
+                evt.currentTarget.classList.remove("active");
+            });
+
+            const canvas = window.cnv;
+
+            const texture = await loadImage("escher.png");
+            const regl = createREGL({
+                canvas: cnv,
+                pixelRatio: window.devicePixelRatio,
+                attributes: {
+                    antialias: true,
+                    depth: false,
+                },
+            });
+            const r = regl({
+                viewport: {
+                    x: () =>
+                        (window.innerWidth -
+                            Math.min(window.innerWidth, window.innerHeight)) /
+                        2,
+                    y: () =>
+                        (window.innerHeight -
+                            Math.min(window.innerWidth, window.innerHeight)) /
+                        2,
+                    width: () =>
+                        Math.min(window.innerWidth, window.innerHeight),
+                    height: () =>
+                        Math.min(window.innerWidth, window.innerHeight),
+                },
+                frag: `
+              precision mediump float;
+              uniform sampler2D texture;
+              uniform float zoomFactor;
+              uniform vec2 zoomCenter;
+              varying vec2 uv;
+              void main () {
+                vec2 uvv = uv ;
+                if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                    uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                  } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                  uvv = (uvv - 0.5) * zoomFactor + 0.5;
+                } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
+                  uvv = (uvv - 0.5) / zoomFactor + 0.5;
+                }
+
+                vec4 sharp = texture2D(texture, uvv + zoomCenter);
+
+                gl_FragColor = sharp;
+              }`,
+
+                vert: `
+              precision mediump float;
+              attribute vec2 position;
+              uniform vec2 ctrl;
+              uniform float zoom;
+              varying vec2 uv;
+              void main () {
+                uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.04 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
+                gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
+              }`,
+
+                attributes: {
+                    position: [-2, 0, 0, -2, 2, 2],
+                },
+
+                uniforms: {
+                    texture: regl.texture(texture, { mipmap: "nice" }),
+                    ctrl: regl.prop("ctrl"),
+                    zoom: regl.prop("zoom"),
+                    zoomFactor: regl.prop("zoomFactor"),
+                    zoomCenter: regl.prop("zoomCenter"),
+                },
+
+                count: 3,
+            });
+            function rsz() {
+                canvas.width = window.innerWidth * window.devicePixelRatio;
+                canvas.height = window.innerHeight * window.devicePixelRatio;
+
+                regl.frame(({ time }) => {
+                    // clear contents of the drawing buffer
+                    regl.clear({
+                        color: [0, 0, 0, 0],
+                        depth: 1,
+                    });
+
+                    // draw a triangle using the command defined above
+                    r({
+                        ctrl: [ctrl.x, ctrl.y],
+                        zoom,
+                        zoomFactor: 16,
+                        zoomCenter: [0, 0],
+                    });
+                });
+            }
+            rsz();
+
+            window.addEventListener("resize", rsz);
+        </script>
+    </body>
+</html>
