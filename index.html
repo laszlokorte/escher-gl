@@ -420,11 +420,10 @@
               varying vec2 uvOrig;
               varying vec2 uvShifted;
               void main () {
-                uv = (0.5 + (pow(2.0, zoom) * (vec2(position - vec2(ctrl.y, -ctrl.x) / 2.0)- 0.5))) ;
-                vec2 cpos = vec2(position.y,position.x) - 0.5 - vec2(ctrl.y, -ctrl.x) / 2.0;
+                vec2 cpos = vec2(1.0-position.y,position.x) - 0.5 - vec2(-ctrl.y, -ctrl.x) / 2.0;
                 uvShifted = vec2(
-                  cpos.x * cos(rotation) - cpos.y * sin(rotation),
-                  cpos.x * sin(rotation) + cpos.y * cos(rotation)
+                  cpos.x * cos(rotation) - cpos.y * sin(-rotation),
+                  cpos.x * sin(-rotation) + cpos.y * cos(rotation)
                 ) + 0.5;
                 uvOrig = position;
                 gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
@@ -491,7 +490,7 @@
 
                           vec2 polar = vec2(
                             -atan(d.y, d.x) /   (3.141 ) ,
-                            log(length(d) ) / log(16.0) - 3.141 / 2.0
+                            log(length(d) ) / log(64.0) - 3.141 / 2.0
                           );
 
 
