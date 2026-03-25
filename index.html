@@ -118,15 +118,15 @@
                                 value="orig"
                                 name="show"
                             />
-                            Show Droste
+                            Droste Zoom
                         </label>
                         <label>
                             <input type="radio" value="log" name="show" />
-                            Show Log
+                            Log Map
                         </label>
                         <label>
                             <input type="radio" value="swirl" name="show" />
-                            Show Swirl (WIP)
+                            Escher Zoom
                         </label>
                     </form>
                     <label>
@@ -143,31 +143,12 @@
                         />
                         <output
                             ondblclick="
-                                this.previousElementSibling.value =
-                                    this.previousElementSibling.valueAsNumber ==
-                                    0.0
-                                        ? 1.57
-                                        : 0.0;
-                                this.value =
-                                    this.previousElementSibling.valueAsNumber ==
-                                    0.0
-                                        ? 1.57
-                                        : 0.0;
+                                this.previousElementSibling.value = 0.0;
+                                this.value = 0.0;
                             "
                             >0.0</output
                         >
                     </label>
-                    <label>
-                        scale
-                        <input
-                            type="range"
-                            id="logscale"
-                            min="-3.2"
-                            max="3.2"
-                            style="flex-grow: 1; width: 100%"
-                            step="0.01"
-                            value="1.0"
-                    /></label>
                 </div>
             </fieldset>
             <pre id="debug" class="layer"></pre>
@@ -333,7 +314,7 @@
                           varying vec2 uvShifted;
                           void main () {
 
-                            vec2 cpos = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + sheer * (position.x - 0.5)) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) - 0.5;
+                            vec2 cpos = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + sheer * (position.x - 0.5)) - ctrl / 2.0)- 0.5))) - 0.5;
 
                             uvShifted = vec2(
                               cpos.x * cos(rotation) - cpos.y * sin(rotation),
@@ -384,7 +365,6 @@
                 },
                 frag: `
 
-                precision highp float;
               precision mediump float;
               uniform sampler2D texture;
               uniform float zoomFactor;
@@ -404,15 +384,16 @@
                     0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0
                   );
 
-                vec2 uvv = cc;
-                    if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                    uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                  } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
-                  uvv = (uvv - 0.5) * zoomFactor + 0.5;
-                } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
-                  uvv = (uvv - 0.5) / zoomFactor + 0.5;
-                }
-                uvv = uvv + zoomCenter;
+
+                  vec2 uvv = cc;
+                      if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                      uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                    } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                    uvv = (uvv - 0.5) * zoomFactor + 0.5;
+                  } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
+                    uvv = (uvv - 0.5) / zoomFactor + 0.5;
+                  }
+                  uvv = uvv + zoomCenter;
 
                 vec4 sharp = texture2D(texture, uvv);
 
@@ -430,14 +411,13 @@
               varying vec2 uvOrig;
               varying vec2 uvShifted;
               void main () {
-                uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.06 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
-                vec2 cpos = position - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
+                uv = (0.5 + (pow(2.0, zoom) * (vec2(position - vec2(ctrl.y, -ctrl.x) / 2.0)- 0.5))) ;
+                vec2 cpos = vec2(position.y,position.x) - 0.5 - vec2(ctrl.y, -ctrl.x) / 2.0;
                 uvShifted = vec2(
                   cpos.x * cos(rotation) - cpos.y * sin(rotation),
                   cpos.x * sin(rotation) + cpos.y * cos(rotation)
                 ) + 0.5;
                 uvOrig = position;
-                uvShifted = uvShifted ;
                 gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
               }`,
 
@@ -490,7 +470,6 @@
                           uniform vec2 zoomCenter;
                           uniform float zoomFull;
                           uniform float zoom;
-                          uniform float sss;
                           uniform float sheer;
                           uniform vec2 ctrl;
                           varying vec2 uvOrig;
@@ -501,40 +480,39 @@
 
                           vec2 polar = vec2(
                             -atan(d.y, d.x) /  (3.141 )  ,
-                            log(length(d)) / log(16.0)
+                            log(length(d)) / 2.0
                           );
 
 
-                            vec2 cpos = polar  + vec2(-zoomFull * 6.0, zoomFull * 6.0) / 2.0;
+                            vec2 cpos = polar  + vec2(-zoom * 2.0, zoom * 2.0) / 2.0;
                             vec2 uvShifted = vec2(
-                              cpos.x * cos(-.46171) - cpos.y * sin(-.46171),
-                              cpos.x * sin(-.46171) + cpos.y * cos(-.46171)
-                            ) * 1.11986083984  - vec2(-zoomFull * 6.0, zoomFull * 6.0) / 2.0;
-                            // x = .46171791076660156
-                            // y = -.22397216796875
-
-                           /// + 0.5 - vec2(-zoomFull, zoomFull * 6.0) / 2.0;
+                              cpos.x * cos(-.46171 -.001973422646522522) - cpos.y * sin(-.46171 -.001973422646522522),
+                              cpos.x * sin(-.46171 -.001973422646522522) + cpos.y * cos(-.46171 -.001973422646522522)
+                            ) * (1.11986083984 -.0023570055961608887)   - vec2(-zoom * 2.0, zoom * 2.0) / 2.0;
 
 
-                            // float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
+                            /// + 0.5 - vec2(-zoom, zoom * 2.0) / 2.0;
 
 
-                              float rad =  mod((uvShifted.y - 0.5) + 0.5 , 1.0);
+                            float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
+
+
+                            rad =  mod(uvShifted.y, 1.0);
 
                               vec2 cc = vec2(
                                 0.5 + cos(3.141 * uvShifted.x ) * rad / 2.0,
                                 0.5 + sin(3.141 * uvShifted.x  ) * rad / 2.0
                               );
-                            vec2 uvv = cc;
 
-                            uvv = uvv - vec2(0.0, sheer * (uvv.x - 0.5));
-                                if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                                uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                              } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
-                              uvv = (uvv - 0.5) * zoomFactor + 0.5;
-                            } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
-                              uvv = (uvv - 0.5) / zoomFactor + 0.5;
-                            }
+
+                            vec2 uvv = cc;
+                          //      if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                          //      uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                          //    } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                          //    uvv = (uvv - 0.5) * zoomFactor + 0.5;
+                          //  } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
+                          //    uvv = (uvv - 0.5) / zoomFactor + 0.5;
+                          //  }
                             uvv = uvv + zoomCenter;
 
                             vec4 sharp = texture2D(texture, uvv);
@@ -551,7 +529,11 @@
                           uniform float rotation;
                           varying vec2 uvOrig;
                           void main () {
-                            uvOrig = position;
+                            vec2 cp = position - 0.5;
+                            uvOrig = vec2(
+                                cp.x * cos(rotation) - cp.y * sin(rotation),
+                                cp.x * sin(rotation) + cp.y * cos(rotation)
+                              ) + 0.5;
                             gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
                           }`,
 
@@ -565,10 +547,9 @@
                     zoom: regl.prop("zoom"),
                     sheer: regl.prop("sheer"),
                     rotation: regl.prop("rotation"),
-                    zoomFull: regl.prop("zoomFull"),
+                    zoomfull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
-                    sss: regl.prop("sss"),
                 },
 
                 count: 3,
@@ -606,7 +587,6 @@
                         zoomFull,
                         zoomFactor: 16,
                         sheer: 0.05,
-                        sss: window.logscale.valueAsNumber,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                     });
