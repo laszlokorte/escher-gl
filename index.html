@@ -117,7 +117,7 @@
 
             const canvas = window.cnv;
 
-            const texture = await loadImage("escher.svg", 2 * 2048, 2 * 2048);
+            const texture = await loadImage("escher.png", 2 * 2048, 2 * 2048);
             const regl = createREGL({
                 canvas: cnv,
                 pixelRatio: window.devicePixelRatio,
@@ -169,7 +169,7 @@
               uniform float zoom;
               varying vec2 uv;
               void main () {
-                uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.04 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
+                uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.06 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
                 gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
               }`,
 
