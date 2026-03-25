@@ -204,7 +204,15 @@
                 show = Object.fromEntries(new FormData(evt.currentTarget)).show;
             });
 
+            window.ctrl.addEventListener("dblclick", (evt) => {
+                ctrl.x = 0;
+                ctrl.y = 0;
+                evt.currentTarget.setAttribute("cx", 0);
+                evt.currentTarget.setAttribute("cy", 0);
+            });
+
             window.ctrl.addEventListener("pointermove", (evt) => {
+                evt.preventDefault();
                 if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                     const owner = evt.currentTarget.ownerSVGElement;
                     const pt = owner.createSVGPoint();
@@ -225,6 +233,7 @@
             });
 
             window.ctrl.addEventListener("gotpointercapture", (evt) => {
+                evt.preventDefault();
                 evt.currentTarget.classList.add("active");
             });
 
@@ -474,30 +483,30 @@
                           uniform vec2 ctrl;
                           varying vec2 uvOrig;
                           uniform float rotation;
+                          uniform float escherAngle;
+                          uniform float escherScale;
                           void main () {
 
                           vec2 d = uvOrig - 0.5;
 
                           vec2 polar = vec2(
-                            -atan(d.y, d.x) /  (3.141 )  ,
-                            log(length(d)) / 2.0
+                            -atan(d.y, d.x) /   (3.141 ) ,
+                            log(length(d) ) / log(16.0) - 3.141 / 2.0
                           );
 
 
-                            vec2 cpos = polar  + vec2(-zoom * 2.0, zoom * 2.0) / 2.0;
+                            vec2 cpos = polar  + vec2(-zoom , zoom ) * 2.0;
                             vec2 uvShifted = vec2(
-                              cpos.x * cos(-.46171 -.001973422646522522) - cpos.y * sin(-.46171 -.001973422646522522),
-                              cpos.x * sin(-.46171 -.001973422646522522) + cpos.y * cos(-.46171 -.001973422646522522)
-                            ) * (1.11986083984 -.0023570055961608887)   - vec2(-zoom * 2.0, zoom * 2.0) / 2.0;
+                              cpos.x * cos(escherAngle + ctrl.x ) - cpos.y * sin(escherAngle + ctrl.x ),
+                              cpos.x * sin(escherAngle + ctrl.x) + cpos.y * cos(escherAngle + ctrl.x )
+                              ) * (escherScale + ctrl.y )   - vec2(-zoom , zoom ) * 2.0;
 
-
-                            /// + 0.5 - vec2(-zoom, zoom * 2.0) / 2.0;
 
 
                             float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
 
 
-                            rad =  mod(uvShifted.y, 1.0);
+                            //rad =  mod(uvShifted.y, 1.0);
 
                               vec2 cc = vec2(
                                 0.5 + cos(3.141 * uvShifted.x ) * rad / 2.0,
@@ -506,17 +515,20 @@
 
 
                             vec2 uvv = cc;
-                          //      if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                          //      uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                          //    } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
-                          //    uvv = (uvv - 0.5) * zoomFactor + 0.5;
-                          //  } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
-                          //    uvv = (uvv - 0.5) / zoomFactor + 0.5;
-                          //  }
+                                if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                                uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                              } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                              uvv = (uvv - 0.5) * zoomFactor + 0.5;
+                            } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
+                              uvv = (uvv - 0.5) / zoomFactor + 0.5;
+                            }
                             uvv = uvv + zoomCenter;
 
                             vec4 sharp = texture2D(texture, uvv);
 
+                            vec2 dm = uvOrig - 0.5;
+                            float r = length(dm);
+                            float mask = smoothstep(0.1, 0.1, r);
                             gl_FragColor = sharp;
                           }`,
 
@@ -529,10 +541,10 @@
                           uniform float rotation;
                           varying vec2 uvOrig;
                           void main () {
-                            vec2 cp = position - 0.5;
+                            vec2 cp = vec2( 1.0-position.y,position.x) - 0.5;
                             uvOrig = vec2(
-                                cp.x * cos(rotation) - cp.y * sin(rotation),
-                                cp.x * sin(rotation) + cp.y * cos(rotation)
+                                cp.x * cos(-rotation) - cp.y * sin(-rotation),
+                                cp.x * sin(-rotation) + cp.y * cos(-rotation)
                               ) + 0.5;
                             gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
                           }`,
@@ -550,6 +562,8 @@
                     zoomfull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
+                    escherAngle: regl.prop("escherAngle"),
+                    escherScale: regl.prop("escherScale"),
                 },
 
                 count: 3,
@@ -589,6 +603,8 @@
                         sheer: 0.05,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
+                        escherAngle: -0.24487874825954437,
+                        escherScale: 1.030875388618534,
                     });
                 } else {
                     origPlot({
