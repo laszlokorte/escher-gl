@@ -114,15 +114,20 @@
                                 value="orig"
                                 name="show"
                             />
-                            Show Original
+                            Show Droste
                         </label>
                         <label>
                             <input type="radio" value="log" name="show" />
                             Show Log
                         </label>
                         <label>
-                            <input type="radio" value="swirl" name="show" />
-                            Show Swirl
+                            <input
+                                type="radio"
+                                checked
+                                value="swirl"
+                                name="show"
+                            />
+                            Show Swirl (WIP)
                         </label>
                     </form>
                     <label>
@@ -130,21 +135,35 @@
                         <input
                             type="range"
                             id="logrotation"
-                            min="-1"
-                            max="1"
+                            min="-10"
+                            max="10"
+                            style="width: 30em"
                             step="0.01"
-                            value="0"
-                            oninput="
-                                this.nextElementSibling.textContent = this.value
-                            "
+                            value="0.0"
+                            oninput="this.nextElementSibling.value = this.value"
                         />
-                        <output>0.0</output>
+                        <output
+                            ondblclick="
+                                this.previousElementSibling.value =
+                                    this.previousElementSibling.valueAsNumber ==
+                                    0.0
+                                        ? 1.57
+                                        : 0.0;
+                                this.value =
+                                    this.previousElementSibling.valueAsNumber ==
+                                    0.0
+                                        ? 1.57
+                                        : 0.0;
+                            "
+                            >0.0</output
+                        >
                     </label>
                 </div>
             </fieldset>
             <pre id="debug" class="layer"></pre>
         </div>
         <script src="regl.js"></script>
+
         <script type="module">
             function loadImage(url, w, h) {
                 return new Promise((res, fail) => {
@@ -162,7 +181,7 @@
             }
 
             const ctrl = { x: 0, y: 0 };
-            let show = "orig";
+            let show = "swirl";
             let zoom = 0;
             let zoomFull = 0;
 
@@ -448,19 +467,34 @@
                           uniform sampler2D texture;
                           uniform float zoomFactor;
                           uniform vec2 zoomCenter;
-                          varying vec2 uv;
-                          varying vec2 uvShifted;
                           uniform float zoomFull;
+                          uniform float zoom;
                           uniform vec2 ctrl;
                           varying vec2 uvOrig;
+                          uniform float rotation;
                           void main () {
 
+                          vec2 d = uvOrig - 0.5;
 
-                              float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(pow(2.0, zoomFull) * (uvShifted.y - 0.5) + 0.5 , 1.0);
+                          vec2 polar = vec2(
+                            -atan(d.y, d.x) /  (3.141 * 2.0) +0.5 ,
+                            length(d) * 2.0
+                          );
+
+                            vec2 uv = (0.5 + (((vec2(1.0-polar.x, polar.y ) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
+                            vec2 cpos = polar - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
+                            vec2 uvShifted = vec2(
+                              cpos.x * cos(rotation) - cpos.y * sin(rotation),
+                              cpos.x * sin(rotation) + cpos.y * cos(rotation)
+                            ) + 0.5;
+
+
+                            // float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
+                              float rad = uvShifted.y;
 
                               vec2 cc = vec2(
-                                0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0,
-                                0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0
+                                0.5 + cos(3.141 * ((uvShifted.x-0.5)  + 0.5) * 2.0) * rad / 2.0,
+                                0.5 + sin(3.141 * ((uvShifted.x-0.5)  + 0.5) * 2.0) * rad / 2.0
                               );
 
 
@@ -486,18 +520,9 @@
                           uniform vec2 ctrl;
                           uniform float zoom;
                           uniform float rotation;
-                          varying vec2 uv;
                           varying vec2 uvOrig;
-                          varying vec2 uvShifted;
                           void main () {
-                            uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.06 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
-                            vec2 cpos = position - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
-                            uvShifted = vec2(
-                              cpos.x * cos(rotation) - cpos.y * sin(rotation),
-                              cpos.x * sin(rotation) + cpos.y * cos(rotation)
-                            ) + 0.5;
                             uvOrig = position;
-                            uvShifted = uvShifted ;
                             gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
                           }`,
 
