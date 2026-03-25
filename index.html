@@ -57,9 +57,11 @@
         <pre id="debug" class="layer"></pre>
         <script src="regl.js"></script>
         <script type="module">
-            function loadImage(url) {
+            function loadImage(url, w, h) {
                 return new Promise((res, fail) => {
                     const texture = document.createElement("img");
+                    texture.width = w;
+                    texture.height = h;
                     texture.addEventListener("load", () => {
                         res(texture);
                     });
@@ -115,7 +117,7 @@
 
             const canvas = window.cnv;
 
-            const texture = await loadImage("escher.png");
+            const texture = await loadImage("escher.svg", 2 * 2048, 2 * 2048);
             const regl = createREGL({
                 canvas: cnv,
                 pixelRatio: window.devicePixelRatio,
