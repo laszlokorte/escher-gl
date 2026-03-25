@@ -157,6 +157,17 @@
                             >0.0</output
                         >
                     </label>
+                    <label>
+                        scale
+                        <input
+                            type="range"
+                            id="logscale"
+                            min="-3.2"
+                            max="3.2"
+                            style="flex-grow: 1; width: 100%"
+                            step="0.01"
+                            value="1.0"
+                    /></label>
                 </div>
             </fieldset>
             <pre id="debug" class="layer"></pre>
@@ -479,6 +490,7 @@
                           uniform vec2 zoomCenter;
                           uniform float zoomFull;
                           uniform float zoom;
+                          uniform float sss;
                           uniform float sheer;
                           uniform vec2 ctrl;
                           varying vec2 uvOrig;
@@ -492,20 +504,21 @@
                             length(d) * 2.0
                           );
 
-                            vec2 uv = (0.5 + (((vec2(1.0-polar.x, polar.y ) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
+                            vec2 uv = (0.5 + (((vec2(1.0-polar.x, polar.y ) )- 0.5))) ;
                             vec2 cpos = polar - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
+                            cpos *= sss;
                             vec2 uvShifted = vec2(
                               cpos.x * cos(rotation) - cpos.y * sin(rotation),
                               cpos.x * sin(rotation) + cpos.y * cos(rotation)
-                            ) + 0.5;
+                            ) + 0.5 - vec2(ctrl.x, -ctrl.y) / 2.0;
 
 
                             // float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
                               float rad = uvShifted.y;
 
                               vec2 cc = vec2(
-                                0.5 + cos(3.141 * ((uvShifted.x-0.5)  + 0.5) * 2.0) * rad / 2.0,
-                                0.5 + sin(3.141 * ((uvShifted.x-0.5)  + 0.5) * 2.0) * rad / 2.0
+                                0.5 + cos(3.141 * (uvShifted.x) * 2.0) * rad / 2.0,
+                                0.5 + sin(3.141 * (uvShifted.x) * 2.0) * rad / 2.0
                               );
 
 
@@ -552,6 +565,7 @@
                     zoomFull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
+                    sss: regl.prop("sss"),
                 },
 
                 count: 3,
@@ -589,6 +603,7 @@
                         zoomFull,
                         zoomFactor: 16,
                         sheer: 0.05,
+                        sss: window.logscale.valueAsNumber,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                     });
