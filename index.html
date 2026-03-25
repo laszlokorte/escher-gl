@@ -3,12 +3,17 @@
     <head>
         <meta charset="utf-8" />
         <title>Escher</title>
+        <link rel="icon" href="favicon.svg" />
         <style>
+            * {
+                box-sizing: border-box;
+            }
             :root,
             html,
             body {
                 height: 100%;
                 background-color: #594732;
+                font-family: monospace;
             }
 
             body {
@@ -29,8 +34,13 @@
                 grid-area: 1 / 1 / -1 / -1;
                 margin: 0;
                 padding: 0;
-                font-size: 5em;
             }
+            .layer.top {
+                align-self: start;
+                height: auto;
+                padding: 2em;
+            }
+
             .control {
                 cursor: move;
             }
@@ -42,19 +52,98 @@
                 display: none;
             }
             circle {
-                opacity: 0.2;
+                opacity: 0.1;
             }
             pre {
                 pointer-events: none;
+            }
+            legend {
+                background-color: #300d48;
+                color: #fff;
+                padding: 0.5ex 1ex;
+            }
+            fieldset {
+                border: none;
+                background-color: #fffc;
+                border: 2px solid #300d48;
+            }
+            label {
+                display: flex;
+                gap: 1ex;
+                align-items: center;
+                background-color: #fffa;
+                width: max-content;
+                padding: 1ex;
+                user-select: none;
+            }
+            .ctrls {
+                display: flex;
+                gap: 1em;
+                accent-color: #e03031;
+            }
+
+            label:has(> :checked) {
+                background-color: #e03031;
+                accent-color: #000;
+                color: #fff;
+            }
+            output {
+                display: block;
+                width: 5em;
+            }
+
+            .radiolist {
+                display: contents;
             }
         </style>
     </head>
     <body>
         <canvas id="cnv" class="layer"></canvas>
         <svg id="vg" class="layer" viewBox="-100 -100 200 200">
-            <circle id="ctrl" r="4" cx="0" cy="0" class="control"></circle>
+            <circle id="ctrl" r="14" cx="0" cy="0" class="control"></circle>
         </svg>
-        <pre id="debug" class="layer"></pre>
+        <div class="layer top">
+            <fieldset>
+                <legend>Options</legend>
+                <div class="ctrls">
+                    <form id="showoptions" class="radiolist">
+                        <label>
+                            <input
+                                type="radio"
+                                checked
+                                value="orig"
+                                name="show"
+                            />
+                            Show Original
+                        </label>
+                        <label>
+                            <input type="radio" value="log" name="show" />
+                            Show Log
+                        </label>
+                        <label>
+                            <input type="radio" value="swirl" name="show" />
+                            Show Swirl
+                        </label>
+                    </form>
+                    <label>
+                        Rotation
+                        <input
+                            type="range"
+                            id="logrotation"
+                            min="-1"
+                            max="1"
+                            step="0.01"
+                            value="0"
+                            oninput="
+                                this.nextElementSibling.textContent = this.value
+                            "
+                        />
+                        <output>0.0</output>
+                    </label>
+                </div>
+            </fieldset>
+            <pre id="debug" class="layer"></pre>
+        </div>
         <script src="regl.js"></script>
         <script type="module">
             function loadImage(url, w, h) {
@@ -73,18 +162,28 @@
             }
 
             const ctrl = { x: 0, y: 0 };
+            let show = "orig";
             let zoom = 0;
+            let zoomFull = 0;
 
             window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
                 zoom += evt.deltaY / 1400;
+                zoomFull += evt.deltaY / 1400;
                 zoom = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                zoomFull = Math.max(0, Math.min(2, zoomFull));
                 window.debug.textContent = Math.round(zoom * 100) / 100;
             });
 
             window.ctrl.addEventListener("pointerdown", (evt) => {
+                evt.preventDefault();
                 evt.currentTarget.setPointerCapture(evt.pointerId);
 
                 evt.currentTarget.classList.add("active");
+            });
+
+            window.showoptions.addEventListener("input", (evt) => {
+                evt.preventDefault();
+                show = Object.fromEntries(new FormData(evt.currentTarget)).show;
             });
 
             window.ctrl.addEventListener("pointermove", (evt) => {
@@ -117,7 +216,11 @@
 
             const canvas = window.cnv;
 
-            const texture = await loadImage("escher.png", 2 * 2048, 2 * 2048);
+            const textureImage = await loadImage(
+                "escher.svg",
+                2 * 2048,
+                2 * 2048,
+            );
             const regl = createREGL({
                 canvas: cnv,
                 pixelRatio: window.devicePixelRatio,
@@ -126,50 +229,176 @@
                     depth: false,
                 },
             });
-            const r = regl({
+
+            const texture = regl.texture({
+                data: textureImage,
+                mipmap: "nice",
+                mag: "linear",
+                min: "linear",
+                wrap: ["repeat", "repeat"],
+            });
+            const origPlot = regl({
                 viewport: {
                     x: () =>
-                        (window.innerWidth -
+                        ((window.innerWidth -
                             Math.min(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
                         2,
                     y: () =>
-                        (window.innerHeight -
+                        ((window.innerHeight -
                             Math.min(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
                         2,
                     width: () =>
-                        Math.min(window.innerWidth, window.innerHeight),
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
                     height: () =>
-                        Math.min(window.innerWidth, window.innerHeight),
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
                 },
                 frag: `
+
+                          precision mediump float;
+                          uniform sampler2D texture;
+                          uniform float zoomFactor;
+                          uniform vec2 zoomCenter;
+                          varying vec2 uv;
+                          varying vec2 uvShifted;
+                          void main () {
+                            vec2 uvv = uvShifted;
+
+                            if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                              uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                            } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                              uvv = (uvv - 0.5) * zoomFactor + 0.5;
+                            } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
+                              uvv = (uvv - 0.5) / zoomFactor + 0.5;
+                            }
+                            uvv = uvv + zoomCenter;
+
+                            vec4 sharp = texture2D(texture, uvv);
+
+                            gl_FragColor = sharp;
+                          }`,
+
+                vert: `
+                          precision mediump float;
+                          attribute vec2 position;
+                          uniform vec2 ctrl;
+                          uniform float zoom;
+                          uniform float rotation;
+                          varying vec2 uv;
+                          varying vec2 uvShifted;
+                          void main () {
+
+                            vec2 cpos = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.05 * (position.x - 0.5)) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) - 0.5;
+
+                            uvShifted = vec2(
+                              cpos.x * cos(rotation) - cpos.y * sin(rotation),
+                              cpos.x * sin(rotation) + cpos.y * cos(rotation)
+                            ) + 0.5;
+                            gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
+                          }`,
+
+                attributes: {
+                    position: [-2, 0, 0, -2, 2, 2],
+                },
+
+                uniforms: {
+                    texture,
+                    ctrl: regl.prop("ctrl"),
+                    zoom: regl.prop("zoom"),
+                    zoomFull: regl.prop("zoomFull"),
+                    zoomFactor: regl.prop("zoomFactor"),
+                    zoomCenter: regl.prop("zoomCenter"),
+                    rotation: regl.prop("rotation"),
+                },
+
+                count: 3,
+            });
+            const logplot = regl({
+                viewport: {
+                    x: () =>
+                        ((window.innerWidth -
+                            Math.min(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
+                        2,
+                    y: () =>
+                        ((window.innerHeight -
+                            Math.min(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
+                        2,
+                    width: () =>
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
+                    height: () =>
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
+                },
+                frag: `
+
+                precision highp float;
               precision mediump float;
               uniform sampler2D texture;
               uniform float zoomFactor;
               uniform vec2 zoomCenter;
               varying vec2 uv;
+              varying vec2 uvShifted;
+              uniform float zoomFull;
+              uniform vec2 ctrl;
+              varying vec2 uvOrig;
               void main () {
-                vec2 uvv = uv ;
-                if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+
+
+                  float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(pow(2.0, zoomFull) * (uvShifted.y - 0.5) + 0.5 , 1.0);
+
+                  vec2 cc = vec2(
+                    0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0,
+                    0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0
+                  );
+
+                vec2 uvv = cc;
+                    if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
                     uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
                   } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
                   uvv = (uvv - 0.5) * zoomFactor + 0.5;
                 } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
                   uvv = (uvv - 0.5) / zoomFactor + 0.5;
                 }
+                uvv = uvv + zoomCenter;
 
-                vec4 sharp = texture2D(texture, uvv + zoomCenter);
+                vec4 sharp = texture2D(texture, uvv);
 
                 gl_FragColor = sharp;
               }`,
 
                 vert: `
+                precision highp float;
               precision mediump float;
               attribute vec2 position;
               uniform vec2 ctrl;
               uniform float zoom;
+              uniform float rotation;
               varying vec2 uv;
+              varying vec2 uvOrig;
+              varying vec2 uvShifted;
               void main () {
                 uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.06 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
+                vec2 cpos = position - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
+                uvShifted = vec2(
+                  cpos.x * cos(rotation) - cpos.y * sin(rotation),
+                  cpos.x * sin(rotation) + cpos.y * cos(rotation)
+                ) + 0.5;
+                uvOrig = position;
+                uvShifted = uvShifted ;
                 gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
               }`,
 
@@ -178,9 +407,110 @@
                 },
 
                 uniforms: {
-                    texture: regl.texture(texture, { mipmap: "nice" }),
+                    texture,
                     ctrl: regl.prop("ctrl"),
                     zoom: regl.prop("zoom"),
+                    rotation: regl.prop("rotation"),
+                    zoomFull: regl.prop("zoomFull"),
+                    zoomFactor: regl.prop("zoomFactor"),
+                    zoomCenter: regl.prop("zoomCenter"),
+                },
+
+                count: 3,
+            });
+            const swirlPlot = regl({
+                viewport: {
+                    x: () =>
+                        ((window.innerWidth -
+                            Math.min(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
+                        2,
+                    y: () =>
+                        ((window.innerHeight -
+                            Math.min(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
+                        2,
+                    width: () =>
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
+                    height: () =>
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
+                },
+                frag: `
+
+                            precision highp float;
+                          precision mediump float;
+                          uniform sampler2D texture;
+                          uniform float zoomFactor;
+                          uniform vec2 zoomCenter;
+                          varying vec2 uv;
+                          varying vec2 uvShifted;
+                          uniform float zoomFull;
+                          uniform vec2 ctrl;
+                          varying vec2 uvOrig;
+                          void main () {
+
+
+                              float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(pow(2.0, zoomFull) * (uvShifted.y - 0.5) + 0.5 , 1.0);
+
+                              vec2 cc = vec2(
+                                0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0,
+                                0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0
+                              );
+
+
+                            vec2 uvv = cc;
+                                if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                                uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                              } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                              uvv = (uvv - 0.5) * zoomFactor + 0.5;
+                            } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
+                              uvv = (uvv - 0.5) / zoomFactor + 0.5;
+                            }
+                            uvv = uvv + zoomCenter;
+
+                            vec4 sharp = texture2D(texture, uvv);
+
+                            gl_FragColor = sharp;
+                          }`,
+
+                vert: `
+                            precision highp float;
+                          precision mediump float;
+                          attribute vec2 position;
+                          uniform vec2 ctrl;
+                          uniform float zoom;
+                          uniform float rotation;
+                          varying vec2 uv;
+                          varying vec2 uvOrig;
+                          varying vec2 uvShifted;
+                          void main () {
+                            uv = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.06 * position.x) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) ;
+                            vec2 cpos = position - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
+                            uvShifted = vec2(
+                              cpos.x * cos(rotation) - cpos.y * sin(rotation),
+                              cpos.x * sin(rotation) + cpos.y * cos(rotation)
+                            ) + 0.5;
+                            uvOrig = position;
+                            uvShifted = uvShifted ;
+                            gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
+                          }`,
+
+                attributes: {
+                    position: [-2, 0, 0, -2, 2, 2],
+                },
+
+                uniforms: {
+                    texture,
+                    ctrl: regl.prop("ctrl"),
+                    zoom: regl.prop("zoom"),
+                    rotation: regl.prop("rotation"),
+                    zoomFull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
                 },
@@ -188,8 +518,9 @@
                 count: 3,
             });
             function rsz() {
-                canvas.width = window.innerWidth * window.devicePixelRatio;
-                canvas.height = window.innerHeight * window.devicePixelRatio;
+                canvas.width = window.innerWidth * window.devicePixelRatio * 2;
+                canvas.height =
+                    window.innerHeight * window.devicePixelRatio * 2;
 
                 regl.frame(({ time }) => {
                     // clear contents of the drawing buffer
@@ -198,13 +529,34 @@
                         depth: 1,
                     });
 
-                    // draw a triangle using the command defined above
-                    r({
-                        ctrl: [ctrl.x, ctrl.y],
-                        zoom,
-                        zoomFactor: 16,
-                        zoomCenter: [0, 0],
-                    });
+                    if (show === "log") {
+                        logplot({
+                            ctrl: [ctrl.x, ctrl.y],
+                            zoom,
+                            zoomFull,
+                            zoomFactor: 16,
+                            zoomCenter: [0, 0],
+                            rotation: logrotation.valueAsNumber,
+                        });
+                    } else if (show == "swirl") {
+                        swirlPlot({
+                            ctrl: [ctrl.x, ctrl.y],
+                            zoom,
+                            zoomFull,
+                            zoomFactor: 16,
+                            zoomCenter: [0, 0],
+                            rotation: logrotation.valueAsNumber,
+                        });
+                    } else {
+                        origPlot({
+                            ctrl: [ctrl.x, ctrl.y],
+                            zoom,
+                            zoomFull,
+                            zoomFactor: 16,
+                            zoomCenter: [0, 0],
+                            rotation: logrotation.valueAsNumber,
+                        });
+                    }
                 });
             }
             rsz();
