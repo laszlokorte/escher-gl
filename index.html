@@ -192,9 +192,17 @@
                 window.debug.textContent = Math.round(zoom * 100) / 100;
             });
 
+            let offset = {
+                x: 0,
+                y: 0,
+            };
             window.ctrl.addEventListener("pointerdown", (evt) => {
                 evt.preventDefault();
                 evt.currentTarget.setPointerCapture(evt.pointerId);
+
+                const bb = evt.currentTarget.getBoundingClientRect();
+                offset.x = evt.clientX - bb.left - bb.width / 2;
+                offset.y = evt.clientY - bb.top - bb.height / 2;
 
                 evt.currentTarget.classList.add("active");
             });
@@ -208,8 +216,8 @@
                 if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                     const owner = evt.currentTarget.ownerSVGElement;
                     const pt = owner.createSVGPoint();
-                    pt.x = evt.clientX;
-                    pt.y = evt.clientY;
+                    pt.x = evt.clientX - offset.x;
+                    pt.y = evt.clientY - offset.y;
 
                     var svgPos = pt.matrixTransform(
                         owner.getScreenCTM().inverse(),
@@ -308,12 +316,13 @@
                           attribute vec2 position;
                           uniform vec2 ctrl;
                           uniform float zoom;
+                          uniform float sheer;
                           uniform float rotation;
                           varying vec2 uv;
                           varying vec2 uvShifted;
                           void main () {
 
-                            vec2 cpos = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + 0.05 * (position.x - 0.5)) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) - 0.5;
+                            vec2 cpos = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + sheer * (position.x - 0.5)) - vec2(ctrl.x, ctrl.y) / 2.0)- 0.5))) - 0.5;
 
                             uvShifted = vec2(
                               cpos.x * cos(rotation) - cpos.y * sin(rotation),
@@ -330,6 +339,7 @@
                     texture,
                     ctrl: regl.prop("ctrl"),
                     zoom: regl.prop("zoom"),
+                    sheer: regl.prop("sheer"),
                     zoomFull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
@@ -428,6 +438,7 @@
                     texture,
                     ctrl: regl.prop("ctrl"),
                     zoom: regl.prop("zoom"),
+                    sheer: regl.prop("sheer"),
                     rotation: regl.prop("rotation"),
                     zoomFull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
@@ -468,6 +479,7 @@
                           uniform vec2 zoomCenter;
                           uniform float zoomFull;
                           uniform float zoom;
+                          uniform float sheer;
                           uniform vec2 ctrl;
                           varying vec2 uvOrig;
                           uniform float rotation;
@@ -498,6 +510,8 @@
 
 
                             vec2 uvv = cc;
+
+                            uvv = uvv - vec2(0.0, sheer * (uvv.x - 0.5));
                                 if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
                                 uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
                               } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
@@ -533,6 +547,7 @@
                     texture,
                     ctrl: regl.prop("ctrl"),
                     zoom: regl.prop("zoom"),
+                    sheer: regl.prop("sheer"),
                     rotation: regl.prop("rotation"),
                     zoomFull: regl.prop("zoomFull"),
                     zoomFactor: regl.prop("zoomFactor"),
@@ -563,6 +578,7 @@
                         zoom,
                         zoomFull,
                         zoomFactor: 16,
+                        sheer: 0.05,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                     });
@@ -572,6 +588,7 @@
                         zoom,
                         zoomFull,
                         zoomFactor: 16,
+                        sheer: 0.05,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                     });
@@ -580,6 +597,7 @@
                         ctrl: [ctrl.x, ctrl.y],
                         zoom,
                         zoomFull,
+                        sheer: 0.05,
                         zoomFactor: 16,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
