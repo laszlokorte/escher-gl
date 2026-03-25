@@ -500,16 +500,20 @@
                           vec2 d = uvOrig - 0.5;
 
                           vec2 polar = vec2(
-                            -atan(d.y, d.x) /  (3.141 * 2.0) +0.5 ,
-                            length(d) * 2.0
+                            -atan(d.y, d.x) /  (3.141 )  ,
+                            log(length(d)) / log(16.0)
                           );
 
 
-                            vec2 cpos = polar - 0.5 + vec2(ctrl.x, -ctrl.y) / 2.0;
+                            vec2 cpos = polar  + vec2(-zoomFull * 6.0, zoomFull * 6.0) / 2.0;
                             vec2 uvShifted = vec2(
-                              cpos.x * cos(rotation) - cpos.y * sin(rotation),
-                              cpos.x * sin(rotation) + cpos.y * cos(rotation)
-                            ) * sss + 0.5 - vec2(ctrl.x, -ctrl.y) / 2.0;
+                              cpos.x * cos(-.46171) - cpos.y * sin(-.46171),
+                              cpos.x * sin(-.46171) + cpos.y * cos(-.46171)
+                            ) * 1.11986083984  - vec2(-zoomFull * 6.0, zoomFull * 6.0) / 2.0;
+                            // x = .46171791076660156
+                            // y = -.22397216796875
+
+                           /// + 0.5 - vec2(-zoomFull, zoomFull * 6.0) / 2.0;
 
 
                             // float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
@@ -518,8 +522,8 @@
                               float rad =  mod((uvShifted.y - 0.5) + 0.5 , 1.0);
 
                               vec2 cc = vec2(
-                                0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, -2.0*zoomFull) + 0.5)) * rad / 2.0,
-                                0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, -2.0*zoomFull) + 0.5) ) * rad / 2.0
+                                0.5 + cos(3.141 * uvShifted.x ) * rad / 2.0,
+                                0.5 + sin(3.141 * uvShifted.x  ) * rad / 2.0
                               );
                             vec2 uvv = cc;
 
