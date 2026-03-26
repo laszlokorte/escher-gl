@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>Escher</title>
+        <title>M.C. Escher Print Gallery Shader</title>
         <link rel="icon" href="favicon.svg" />
         <meta
             name="viewport"
@@ -80,6 +80,14 @@
                 fill-opacity: 0.8;
                 fill: #ddd;
             }
+            text {
+                fill: #fff;
+                fill-opacity: 0.8;
+                pointer-events: none;
+            }
+            .help {
+                display: none;
+            }
             .dragger[mode="-escher"],
             .dragger[mode="-warped"] {
                 display: none;
@@ -127,6 +135,9 @@
             label:has(> [type="range"]) {
                 flex-grow: 1;
             }
+            select {
+                width: 10em;
+            }
             output {
                 display: block;
                 width: 5em;
@@ -151,6 +162,15 @@
                 stroke-width: 0;
                 pointer-events: all;
             }
+
+            .loader {
+                z-index: 100;
+                background-color: #594732;
+                color: #fff;
+                display: grid;
+                place-content: center;
+                font-size: 2em;
+            }
         </style>
     </head>
     <body>
@@ -169,6 +189,16 @@
                 <polygon points="-2 4 2 4 0 6" fill="white" />
                 <polygon points="4 -2 4 2 6 0" fill="white" />
                 <polygon points="-4 -2 -4 2 -6 0" fill="white" />
+                <text
+                    class="help"
+                    x="0"
+                    y="1"
+                    text-anchor="middle"
+                    font-size="3"
+                    fill="white"
+                >
+                    Drag
+                </text>
             </g>
         </svg>
         <svg
@@ -182,6 +212,15 @@
                 <rect x="-100.1" y="-100" width="20" height="200"></rect>
                 <polygon points="-95 20 -85 20 -90 25" fill="white" />
                 <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
+                <text
+                    x="-90"
+                    y="0"
+                    text-anchor="middle"
+                    font-size="3"
+                    fill="white"
+                >
+                    Swipe
+                </text>
             </g>
         </svg>
         <div class="layer top">
@@ -189,26 +228,12 @@
                 <legend>options</legend>
                 <div class="ctrls">
                     <form id="showoptions" class="radiolist">
+                        <div class="radiolist" id="optionlist"></div>
                         <label>
-                            <input
-                                type="radio"
-                                checked
-                                value="orig"
-                                name="show"
-                            />
-                            droste zoom
-                        </label>
-                        <label>
-                            <input type="radio" value="log" name="show" />
-                            log map
-                        </label>
-                        <label>
-                            <input type="radio" value="escher" name="show" />
-                            escher zoom
-                        </label>
-                        <label>
-                            <input type="radio" value="free" name="show" />
-                            freestyle
+                            Image
+                            <select name="image" id="textureSelect">
+                                <option disabled>Choose</option>
+                            </select>
                         </label>
                     </form>
                     <label>
@@ -231,10 +256,12 @@
                             >0.0</output
                         >
                     </label>
+                    <div id="errorBox"></div>
                 </div>
             </fieldset>
             <pre id="debug" class="layer"></pre>
         </div>
+        <div class="layer loader" id="loader">Loading</div>
         <script src="regl.js"></script>
 
         <script type="module">
@@ -254,13 +281,22 @@
             }
 
             window.addEventListener("error", (evt) => {
-                window.showoptions.appendChild(
+                while (window.errorBox.firstChild) {
+                    window.errorBox.removeChild(window.errorBox.firstChild);
+                }
+                window.errorBox.appendChild(
                     document.createTextNode(evt.message),
                 );
+
+                if (window.loader) {
+                    window.loader.appendChild(
+                        document.createTextNode(evt.message),
+                    );
+                }
             });
 
             const ctrl = { x: 0, y: 0 };
-            let show = "orig";
+            let show = "droste";
             let zoom = 0;
             let zoomCyclic = 0;
             let zoomClamped = 0;
@@ -408,9 +444,27 @@
                 });
             }
 
+            const visuals = ["droste", "log", "escher", "free"];
+
+            for (const v of visuals) {
+                const l = document.createElement("label");
+                const i = document.createElement("input");
+                i.setAttribute("type", "radio");
+                i.setAttribute("name", "show");
+                i.setAttribute("value", v);
+                i.checked = show == v;
+                l.appendChild(i);
+                l.appendChild(document.createTextNode(v));
+                window.optionlist.appendChild(l);
+            }
+
             window.showoptions.addEventListener("input", (evt) => {
                 evt.preventDefault();
-                show = Object.fromEntries(new FormData(evt.currentTarget)).show;
+                const formValues = Object.fromEntries(
+                    new FormData(evt.currentTarget),
+                );
+                show = formValues.show;
+                activeTexture = formValues.image;
                 window.ctrl.setAttribute("mode", show);
             });
 
@@ -428,10 +482,10 @@
                 Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
             );
 
-            const textureImage = await loadImage(
-                "escher.svg",
-                expSize,
-                expSize,
+            const images = ["house.svg", "grid.svg"];
+
+            const textureImages = await Promise.all(
+                images.map((i) => loadImage(i, expSize, expSize)),
             );
             const vertexShader = await fetch("./shader-vertex.glsl").then((r) =>
                 r.text(),
@@ -448,12 +502,23 @@
                 },
             });
 
-            let texture = regl.texture({
-                data: textureImage,
-                mag: "linear",
-                min: "linear",
-                wrap: ["repeat", "repeat"],
+            let ti = 0;
+            for (let t of images) {
+                const o = document.createElement("option");
+                o.appendChild(document.createTextNode(t.replace(".svg", "")));
+                o.setAttribute("value", ti++);
+                window.textureSelect.appendChild(o);
+            }
+
+            const textures = textureImages.map((textureImage) => {
+                return regl.texture({
+                    data: textureImage,
+                    mag: "linear",
+                    min: "linear",
+                    wrap: ["repeat", "repeat"],
+                });
             });
+            let activeTexture = 0;
 
             const swirlPlot = regl({
                 viewport: {
@@ -516,19 +581,20 @@
                     2,
                     Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
                 );
+                for (let t = 0; t < textures.length; t++) {
+                    if (textureImages.width < expSize) {
+                        textureImages.width = expSize;
+                        textureImages.height = expSize;
+                        const oldTexture = textures[t];
+                        textures[t] = regl.texture({
+                            data: textureImages,
+                            mag: "linear",
+                            min: "linear",
+                            wrap: ["repeat", "repeat"],
+                        });
 
-                if (textureImage.width < expSize) {
-                    textureImage.width = expSize;
-                    textureImage.height = expSize;
-                    const oldTexture = texture;
-                    texture = regl.texture({
-                        data: textureImage,
-                        mag: "linear",
-                        min: "linear",
-                        wrap: ["repeat", "repeat"],
-                    });
-
-                    oldTexture.destroy();
+                        oldTexture.destroy();
+                    }
                 }
             }
             rsz();
@@ -541,9 +607,13 @@
                     depth: 1,
                 });
 
+                if (!textures[activeTexture]) {
+                    return;
+                }
+
                 if (show === "log") {
                     swirlPlot({
-                        texture,
+                        texture: textures[activeTexture],
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom: 0.0,
@@ -559,7 +629,7 @@
                     });
                 } else if (show == "escher") {
                     swirlPlot({
-                        texture,
+                        texture: textures[activeTexture],
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
@@ -575,7 +645,7 @@
                     });
                 } else if (show == "free") {
                     swirlPlot({
-                        texture,
+                        texture: textures[activeTexture],
                         ctrl: [ctrl.x, ctrl.y],
                         offset: [0, 0],
                         zoom,
@@ -591,7 +661,7 @@
                     });
                 } else {
                     swirlPlot({
-                        texture,
+                        texture: textures[activeTexture],
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
@@ -607,6 +677,7 @@
                     });
                 }
             });
+            window.loader.parentNode.removeChild(window.loader);
         </script>
     </body>
 </html>
