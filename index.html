@@ -38,6 +38,7 @@
                 grid-area: 1 / 1 / -1 / -1;
                 margin: 0;
                 padding: 0;
+                touch-action: none;
             }
             .layer.top {
                 align-self: start;
@@ -129,12 +130,29 @@
             .radiolist {
                 display: contents;
             }
+            svg {
+                z-index: 10;
+            }
+            canvas {
+                z-index: 5;
+            }
+
+            .top {
+                z-index: 20;
+            }
+            .touch-area {
+                fill: none;
+                stroke: none;
+                stroke-width: 0;
+                pointer-events: all;
+            }
         </style>
     </head>
     <body>
         <canvas id="cnv" class="layer"></canvas>
         <svg id="vg" class="layer" viewBox="-100 -100 200 200">
             <g id="ctrl" class="dragger">
+                <circle r="25" cx="0" cy="0" class="touch-area"></circle>
                 <circle r="10" cx="0" cy="0" class="control"></circle>
 
                 <polygon points="-2 -4 2 -4 0 -6" fill="white" />
