@@ -52,6 +52,7 @@
             }
 
             .active circle {
+                cursor: move;
                 stroke: aquamarine;
                 opacity: 1;
                 fill-opacity: 0.5;
@@ -64,6 +65,8 @@
             .active rect {
                 opacity: 1;
                 fill-opacity: 0.7;
+                stroke: none;
+                stroke-width: 0;
             }
             #debug {
                 display: none;
@@ -150,7 +153,7 @@
     </head>
     <body>
         <canvas id="cnv" class="layer"></canvas>
-        <svg id="vg" class="layer" viewBox="-100 -100 200 200">
+        <svg id="vg" class="layer" viewbox="-100 -100 200 200">
             <g id="ctrl" class="dragger">
                 <circle r="25" cx="0" cy="0" class="touch-area"></circle>
                 <circle r="10" cx="0" cy="0" class="control"></circle>
@@ -161,14 +164,14 @@
                 <polygon points="-4 -2 -4 2 -6 0" fill="white" />
             </g>
             <g id="scroller">
-                <rect x="-100" y="-100" width="20" height="200"></rect>
+                <rect x="-100.1" y="-100" width="20" height="200"></rect>
                 <polygon points="-95 20 -85 20 -90 25" fill="white" />
                 <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
             </g>
         </svg>
         <div class="layer top">
             <fieldset>
-                <legend>Options</legend>
+                <legend>options</legend>
                 <div class="ctrls">
                     <form id="showoptions" class="radiolist">
                         <label>
@@ -178,27 +181,23 @@
                                 value="orig"
                                 name="show"
                             />
-                            Droste Zoom
-                        </label>
-                        <label>
-                            <input type="radio" value="warped" name="show" />
-                            Warped Zoom
+                            droste zoom
                         </label>
                         <label>
                             <input type="radio" value="log" name="show" />
-                            Log Map
+                            log map
                         </label>
                         <label>
                             <input type="radio" value="escher" name="show" />
-                            Escher Zoom
+                            escher zoom
                         </label>
                         <label>
                             <input type="radio" value="free" name="show" />
-                            FreeStyle
+                            freestyle
                         </label>
                     </form>
                     <label>
-                        Rotation
+                        rotation
                         <input
                             type="range"
                             id="logrotation"
@@ -207,11 +206,11 @@
                             style="flex-grow: 1; width: 100%"
                             step="0.01"
                             value="0.0"
-                            oninput="this.nextElementSibling.value = this.value"
+                            oninput="this.nextelementsibling.value = this.value"
                         />
                         <output
                             ondblclick="
-                                this.previousElementSibling.value = 0.0;
+                                this.previouselementsibling.value = 0.0;
                                 this.value = 0.0;
                             "
                             >0.0</output
@@ -403,6 +402,12 @@
                 2 * 2048,
                 2 * 2048,
             );
+            const vertexShader = await fetch("./shader-vertex.glsl").then((r) =>
+                r.text(),
+            );
+            const fragmentShader = await fetch("./shader-fragment.glsl").then(
+                (r) => r.text(),
+            );
             const regl = createREGL({
                 canvas: cnv,
                 pixelRatio: window.devicePixelRatio,
@@ -418,187 +423,6 @@
                 mag: "linear",
                 min: "linear",
                 wrap: ["repeat", "repeat"],
-            });
-            const origPlot = regl({
-                viewport: {
-                    x: () =>
-                        ((window.innerWidth -
-                            Math.min(window.innerWidth, window.innerHeight)) /
-                            2) *
-                        window.devicePixelRatio *
-                        2,
-                    y: () =>
-                        ((window.innerHeight -
-                            Math.min(window.innerWidth, window.innerHeight)) /
-                            2) *
-                        window.devicePixelRatio *
-                        2,
-                    width: () =>
-                        Math.min(window.innerWidth, window.innerHeight) *
-                        window.devicePixelRatio *
-                        2,
-                    height: () =>
-                        Math.min(window.innerWidth, window.innerHeight) *
-                        window.devicePixelRatio *
-                        2,
-                },
-                frag: `
-
-                          precision mediump float;
-                          uniform sampler2D texture;
-                          uniform float zoomFactor;
-                          uniform vec2 zoomCenter;
-                          varying vec2 uv;
-                          varying vec2 uvShifted;
-                          void main () {
-                            vec2 uvv = uvShifted;
-
-                            if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                              uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                            } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
-                              uvv = (uvv - 0.5) * zoomFactor + 0.5;
-                            } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
-                              uvv = (uvv - 0.5) / zoomFactor + 0.5;
-                            }
-                            uvv = uvv + zoomCenter;
-
-                            vec4 sharp = texture2D(texture, uvv);
-
-                            gl_FragColor = sharp;
-                          }`,
-
-                vert: `
-                          precision mediump float;
-                          attribute vec2 position;
-                          uniform vec2 ctrl;
-                          uniform float zoomCyclic;
-                          uniform float sheer;
-                          uniform float rotation;
-                          varying vec2 uv;
-                          varying vec2 uvShifted;
-                          void main () {
-
-                            vec2 cpos = (0.5 + (pow(2.0, zoomCyclic) * ((vec2(1.0-position.x, position.y + sheer * (position.x - 0.5)) - ctrl / 2.0)- 0.5))) - 0.5;
-
-                            uvShifted = vec2(
-                              cpos.x * cos(rotation) - cpos.y * sin(rotation),
-                              cpos.x * sin(rotation) + cpos.y * cos(rotation)
-                            ) + 0.5;
-                            gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
-                          }`,
-
-                attributes: {
-                    position: [-2, 0, 0, -2, 2, 2],
-                },
-
-                uniforms: {
-                    texture,
-                    ctrl: regl.prop("ctrl"),
-                    zoomCyclic: regl.prop("zoomCyclic"),
-                    sheer: regl.prop("sheer"),
-                    zoomClamped: regl.prop("zoomClamped"),
-                    zoomFactor: regl.prop("zoomFactor"),
-                    zoomCenter: regl.prop("zoomCenter"),
-                    rotation: regl.prop("rotation"),
-                },
-
-                count: 3,
-            });
-            const logplot = regl({
-                viewport: {
-                    x: () =>
-                        ((window.innerWidth -
-                            Math.min(window.innerWidth, window.innerHeight)) /
-                            2) *
-                        window.devicePixelRatio *
-                        2,
-                    y: () =>
-                        ((window.innerHeight -
-                            Math.min(window.innerWidth, window.innerHeight)) /
-                            2) *
-                        window.devicePixelRatio *
-                        2,
-                    width: () =>
-                        Math.min(window.innerWidth, window.innerHeight) *
-                        window.devicePixelRatio *
-                        2,
-                    height: () =>
-                        Math.min(window.innerWidth, window.innerHeight) *
-                        window.devicePixelRatio *
-                        2,
-                },
-                frag: `
-
-              precision mediump float;
-              uniform sampler2D texture;
-              uniform float zoomFactor;
-              uniform vec2 zoomCenter;
-              varying vec2 uv;
-              uniform float zoomClamped;
-              uniform vec2 ctrl;
-              varying vec2 uvOrig;
-              uniform float rotation;
-              void main () {
-
-              vec2 cpos = vec2(1.0-uvOrig.y,uvOrig.x) - 0.5 - vec2(-ctrl.y, -ctrl.x) / 2.0;
-              vec2 uvShifted = vec2(
-                cpos.x * cos(rotation) - cpos.y * sin(-rotation),
-                cpos.x * sin(-rotation) + cpos.y * cos(rotation)
-              ) + 0.5;
-
-                  float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(pow(2.0, zoomClamped) * (uvShifted.y - 0.5) + 0.5 , 1.0);
-
-                  vec2 cc = vec2(
-                    0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomClamped) + 0.5) * 2.0) * rad / 2.0,
-                    0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomClamped) + 0.5) * 2.0) * rad / 2.0
-                  );
-
-
-                  vec2 uvv = cc;
-                      if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                      uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                    } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
-                    uvv = (uvv - 0.5) * zoomFactor + 0.5;
-                  } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
-                    uvv = (uvv - 0.5) / zoomFactor + 0.5;
-                  }
-                  uvv = uvv + zoomCenter;
-
-                vec4 sharp = texture2D(texture, uvv);
-
-                gl_FragColor = sharp;
-              }`,
-
-                vert: `
-              precision mediump float;
-              attribute vec2 position;
-              uniform vec2 ctrl;
-              uniform float zoom;
-              uniform float rotation;
-              varying vec2 uv;
-              varying vec2 uvOrig;
-              varying vec2 uvShifted;
-              void main () {
-                uvOrig = position;
-                gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
-              }`,
-
-                attributes: {
-                    position: [-2, 0, 0, -2, 2, 2],
-                },
-
-                uniforms: {
-                    texture,
-                    ctrl: regl.prop("ctrl"),
-                    zoom: regl.prop("zoom"),
-                    sheer: regl.prop("sheer"),
-                    rotation: regl.prop("rotation"),
-                    zoomClamped: regl.prop("zoomClamped"),
-                    zoomFactor: regl.prop("zoomFactor"),
-                    zoomCenter: regl.prop("zoomCenter"),
-                },
-
-                count: 3,
             });
             const swirlPlot = regl({
                 viewport: {
@@ -623,87 +447,8 @@
                         window.devicePixelRatio *
                         2,
                 },
-                frag: `
-
-                          precision mediump float;
-                          uniform sampler2D texture;
-                          uniform float zoomFactor;
-                          uniform vec2 zoomCenter;
-                          uniform float zoomClamped;
-                          uniform float zoom;
-                          uniform float zoomCylic;
-                          uniform float sheer;
-                          uniform vec2 ctrl;
-                          uniform vec2 offset;
-                          varying vec2 uvOrig;
-                          uniform float rotation;
-                          uniform float escherAngle;
-                          uniform float escherScale;
-                          uniform float warp;
-                          void main () {
-
-                          vec2 rotoffset = vec2(
-                            cos(rotation) * offset.x - sin(rotation) * offset.y,
-                            sin(rotation) * offset.x + cos(rotation) * offset.y
-                          );
-
-                          vec2 d = (uvOrig - 0.5) + rotoffset * 0.5;
-
-                          vec2 polar = vec2(
-                            atan(d.y, d.x) / (3.141) ,
-                            log(length(d) )  / log(zoomFactor)  * warp
-                          );
-
-                            vec2 cpos = polar;
-                            vec2 uvShifted = vec2(
-                              cpos.x * cos(escherAngle + ctrl.x) - cpos.y * sin(escherAngle + ctrl.x ),
-                              cpos.x * sin(escherAngle + ctrl.x) + cpos.y * cos(escherAngle + ctrl.x )
-                              ) / 2.0  * (escherScale + ctrl.y )   + vec2(escherAngle + ctrl.x ,  escherScale + ctrl.y  ) * zoom * 0.1 + 0.5;
-
-                            float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
-
-
-                            //rad =  mod(uvShifted.y, 1.0);
-
-                              vec2 cc = vec2(
-                                0.5 + cos(2.0*3.141 * uvShifted.x) * rad / 2.0,
-                                0.5 + sin(2.0*3.141 * uvShifted.x) * rad / 2.0
-                              );
-
-
-                            vec2 uvv = cc;
-                              if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                              uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                            } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
-                              uvv = (uvv - 0.5) * zoomFactor + 0.5;
-                            } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
-                              uvv = (uvv - 0.5) / zoomFactor + 0.5;
-                            }
-                            uvv = uvv + zoomCenter;
-
-                            vec4 sharp = texture2D(texture, uvv);
-
-                            vec2 dm = uvOrig - 0.5;
-                            float r = length(dm);
-                            float mask = smoothstep(0.1, 0.1, r);
-                            gl_FragColor = sharp;
-                          }`,
-
-                vert: `
-                          precision mediump float;
-                          attribute vec2 position;
-                          uniform vec2 ctrl;
-                          uniform float zoom;
-                          uniform float rotation;
-                          varying vec2 uvOrig;
-                          void main () {
-                            vec2 cp = vec2( position.x,1.0-position.y) - 0.5;
-                            uvOrig = vec2(
-                                cp.x * cos(rotation) - cp.y * sin(rotation),
-                                cp.x * sin(rotation) + cp.y * cos(rotation)
-                              ) + 0.5;
-                            gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
-                          }`,
+                frag: fragmentShader,
+                vert: vertexShader,
 
                 attributes: {
                     position: [-2, 0, 0, -2, 2, 2],
@@ -724,6 +469,7 @@
                     zoomCenter: regl.prop("zoomCenter"),
                     escherAngle: regl.prop("escherAngle"),
                     escherScale: regl.prop("escherScale"),
+                    plotPolar: regl.prop("plotPolar"),
                 },
 
                 count: 3,
@@ -738,21 +484,25 @@
             window.addEventListener("resize", rsz);
 
             regl.frame(({ time }) => {
-                // clear contents of the drawing buffer
                 regl.clear({
                     color: [0, 0, 0, 0],
                     depth: 1,
                 });
 
                 if (show === "log") {
-                    logplot({
-                        ctrl: [ctrl.x, ctrl.y],
-                        zoom,
-                        zoomClamped,
+                    swirlPlot({
+                        ctrl: [0, 0],
+                        offset: [ctrl.x, ctrl.y],
+                        zoom: 0.0,
+                        zoomClamped: 0.0,
                         zoomFactor: 16,
-                        sheer: 0.05,
+                        sheer: 0.0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
+                        escherAngle: -Math.PI / 2.0,
+                        escherScale: Math.pow(2, zoomClamped),
+                        warp: 1,
+                        plotPolar: 1,
                     });
                 } else if (show == "escher") {
                     swirlPlot({
@@ -761,12 +511,13 @@
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
-                        sheer: 0.05,
+                        sheer: 0.0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: 0.463776890039444,
                         escherScale: 1.117768667936325,
                         warp: 1,
+                        plotPolar: 0,
                     });
                 } else if (show == "free") {
                     swirlPlot({
@@ -775,40 +526,28 @@
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
-                        sheer: 0.05,
+                        sheer: 0.0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: 0.0,
                         escherScale: 1.0,
                         warp: 1,
+                        plotPolar: 0,
                     });
-                } else if (show == "warped") {
+                } else {
                     swirlPlot({
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
-                        sheer: 0.05,
+                        sheer: 0.0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: 0.0,
                         warp: 1,
                         escherScale: 1,
-                    });
-                } else {
-                    origPlot({
-                        ctrl: [ctrl.x, ctrl.y],
-                        zoom,
-                        zoomClamped,
-                        zoomCyclic,
-                        zoomFactor: 16,
-                        sheer: 0.05,
-                        zoomCenter: [0, 0],
-                        rotation: logrotation.valueAsNumber,
-                        escherAngle: 0,
-                        warp: 1,
-                        escherScale: 1,
+                        plotPolar: 0,
                     });
                 }
             });
