@@ -174,13 +174,13 @@
             const ctrl = { x: 0, y: 0 };
             let show = "orig";
             let zoom = 0;
-            let zoomFull = 0;
+            let zoomCyclic = 0;
+            let zoomClamped = 0;
 
             window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
                 zoom += evt.deltaY / 1400;
-                zoomFull += evt.deltaY / 1400;
-                zoom = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                zoomFull = Math.max(0, Math.min(2, zoomFull));
+                zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                zoomClamped = Math.max(0, Math.min(2, zoom));
                 window.debug.textContent = Math.round(zoom * 100) / 100;
             });
 
@@ -341,7 +341,7 @@
                     ctrl: regl.prop("ctrl"),
                     zoom: regl.prop("zoom"),
                     sheer: regl.prop("sheer"),
-                    zoomFull: regl.prop("zoomFull"),
+                    zoomClamped: regl.prop("zoomClamped"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
                     rotation: regl.prop("rotation"),
@@ -379,18 +379,23 @@
               uniform float zoomFactor;
               uniform vec2 zoomCenter;
               varying vec2 uv;
-              varying vec2 uvShifted;
-              uniform float zoomFull;
+              uniform float zoomClamped;
               uniform vec2 ctrl;
               varying vec2 uvOrig;
+              uniform float rotation;
               void main () {
 
+              vec2 cpos = vec2(1.0-uvOrig.y,uvOrig.x) - 0.5 - vec2(-ctrl.y, -ctrl.x) / 2.0;
+              vec2 uvShifted = vec2(
+                cpos.x * cos(rotation) - cpos.y * sin(-rotation),
+                cpos.x * sin(-rotation) + cpos.y * cos(rotation)
+              ) + 0.5;
 
-                  float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(pow(2.0, zoomFull) * (uvShifted.y - 0.5) + 0.5 , 1.0);
+                  float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(pow(2.0, zoomClamped) * (uvShifted.y - 0.5) + 0.5 , 1.0);
 
                   vec2 cc = vec2(
-                    0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0,
-                    0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomFull) + 0.5) * 2.0) * rad / 2.0
+                    0.5 + cos(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomClamped) + 0.5) * 2.0) * rad / 2.0,
+                    0.5 + sin(3.141 * ((uvShifted.x-0.5) * pow(2.0, zoomClamped) + 0.5) * 2.0) * rad / 2.0
                   );
 
 
@@ -420,11 +425,6 @@
               varying vec2 uvOrig;
               varying vec2 uvShifted;
               void main () {
-                vec2 cpos = vec2(1.0-position.y,position.x) - 0.5 - vec2(-ctrl.y, -ctrl.x) / 2.0;
-                uvShifted = vec2(
-                  cpos.x * cos(rotation) - cpos.y * sin(-rotation),
-                  cpos.x * sin(-rotation) + cpos.y * cos(rotation)
-                ) + 0.5;
                 uvOrig = position;
                 gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
               }`,
@@ -439,7 +439,7 @@
                     zoom: regl.prop("zoom"),
                     sheer: regl.prop("sheer"),
                     rotation: regl.prop("rotation"),
-                    zoomFull: regl.prop("zoomFull"),
+                    zoomClamped: regl.prop("zoomClamped"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
                 },
@@ -476,31 +476,30 @@
                           uniform sampler2D texture;
                           uniform float zoomFactor;
                           uniform vec2 zoomCenter;
-                          uniform float zoomFull;
+                          uniform float zoomClamped;
                           uniform float zoom;
+                          uniform float zoomCylic;
                           uniform float sheer;
                           uniform vec2 ctrl;
                           varying vec2 uvOrig;
                           uniform float rotation;
                           uniform float escherAngle;
                           uniform float escherScale;
+                          uniform float warp;
                           void main () {
 
-                          vec2 d = uvOrig - 0.5;
+                          vec2 d = (uvOrig - 0.5);
 
                           vec2 polar = vec2(
-                            -atan(d.y, d.x) /   (3.141 ) ,
-                            log(length(d) ) / log(64.0) - 3.141 / 2.0
+                            atan(d.y, d.x) / (3.141) ,
+                            log(length(d) )  / log(zoomFactor)  * warp
                           );
 
-
-                            vec2 cpos = polar  + vec2(-zoom , zoom ) * 2.0;
+                            vec2 cpos = polar;
                             vec2 uvShifted = vec2(
-                              cpos.x * cos(escherAngle + ctrl.x ) - cpos.y * sin(escherAngle + ctrl.x ),
+                              cpos.x * cos(escherAngle + ctrl.x) - cpos.y * sin(escherAngle + ctrl.x ),
                               cpos.x * sin(escherAngle + ctrl.x) + cpos.y * cos(escherAngle + ctrl.x )
-                              ) * (escherScale + ctrl.y )   - vec2(-zoom , zoom ) * 2.0;
-
-
+                              ) / 2.0  * (escherScale + ctrl.y )   - vec2(-zoom  * (escherAngle + ctrl.x) , zoom  ) * 0.1 + 0.5;
 
                             float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
 
@@ -508,15 +507,15 @@
                             //rad =  mod(uvShifted.y, 1.0);
 
                               vec2 cc = vec2(
-                                0.5 + cos(3.141 * uvShifted.x ) * rad / 2.0,
-                                0.5 + sin(3.141 * uvShifted.x  ) * rad / 2.0
+                                0.5 + cos(2.0*3.141 * uvShifted.x) * rad / 2.0,
+                                0.5 + sin(2.0*3.141 * uvShifted.x) * rad / 2.0
                               );
 
 
                             vec2 uvv = cc;
-                                if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
-                                uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-                              } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
+                              if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor/zoomFactor ) {
+                              uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
+                            } else if(abs(uvv.x - 0.5)*2.0 < 1.0/zoomFactor  && abs(uvv.y - 0.5)*2.0 < 1.0/zoomFactor ) {
                               uvv = (uvv - 0.5) * zoomFactor + 0.5;
                             } else if (abs(uvv.x - 0.5) > 0.5  || abs(uvv.y - 0.5) > 0.5 ) {
                               uvv = (uvv - 0.5) / zoomFactor + 0.5;
@@ -532,7 +531,7 @@
                           }`,
 
                 vert: `
-                            precision highp float;
+                          precision highp float;
                           precision mediump float;
                           attribute vec2 position;
                           uniform vec2 ctrl;
@@ -540,10 +539,10 @@
                           uniform float rotation;
                           varying vec2 uvOrig;
                           void main () {
-                            vec2 cp = vec2( 1.0-position.y,position.x) - 0.5;
+                            vec2 cp = vec2( position.x,1.0-position.y) - 0.5;
                             uvOrig = vec2(
-                                cp.x * cos(-rotation) - cp.y * sin(-rotation),
-                                cp.x * sin(-rotation) + cp.y * cos(-rotation)
+                                cp.x * cos(rotation) - cp.y * sin(rotation),
+                                cp.x * sin(rotation) + cp.y * cos(rotation)
                               ) + 0.5;
                             gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
                           }`,
@@ -556,9 +555,12 @@
                     texture,
                     ctrl: regl.prop("ctrl"),
                     zoom: regl.prop("zoom"),
+                    warp: regl.prop("warp"),
                     sheer: regl.prop("sheer"),
                     rotation: regl.prop("rotation"),
-                    zoomfull: regl.prop("zoomFull"),
+                    zoom: regl.prop("zoom"),
+                    zoomCyclic: regl.prop("zoomCyclic"),
+                    zoomClamped: regl.prop("zoomClamped"),
                     zoomFactor: regl.prop("zoomFactor"),
                     zoomCenter: regl.prop("zoomCenter"),
                     escherAngle: regl.prop("escherAngle"),
@@ -587,7 +589,7 @@
                     logplot({
                         ctrl: [ctrl.x, ctrl.y],
                         zoom,
-                        zoomFull,
+                        zoomClamped,
                         zoomFactor: 16,
                         sheer: 0.05,
                         zoomCenter: [0, 0],
@@ -597,23 +599,27 @@
                     swirlPlot({
                         ctrl: [ctrl.x, ctrl.y],
                         zoom,
-                        zoomFull,
+                        zoomClamped,
                         zoomFactor: 16,
                         sheer: 0.05,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
-                        escherAngle: -0.24487874825954437,
-                        escherScale: 1.030875388618534,
+                        escherAngle: 0.463776890039444,
+                        escherScale: 1.117768667936325,
+                        warp: 1,
                     });
                 } else {
-                    origPlot({
-                        ctrl: [ctrl.x, ctrl.y],
+                    swirlPlot({
+                        ctrl: [0, 0],
                         zoom,
-                        zoomFull,
-                        sheer: 0.05,
+                        zoomClamped,
                         zoomFactor: 16,
+                        sheer: 0.05,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
+                        escherAngle: 0,
+                        warp: 1,
+                        escherScale: 1,
                     });
                 }
             });
