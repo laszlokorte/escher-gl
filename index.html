@@ -483,6 +483,7 @@
             );
 
             const images = ["house.svg", "grid.svg"];
+            const sheers = [0.1, 0.0];
 
             const textureImages = await Promise.all(
                 images.map((i) => loadImage(i, expSize, expSize)),
@@ -509,14 +510,15 @@
                 o.setAttribute("value", ti++);
                 window.textureSelect.appendChild(o);
             }
+            const textureOptions = {
+                mag: "linear",
+                flipY: true,
+                min: "linear",
+                wrap: ["repeat", "repeat"],
+            };
 
             const textures = textureImages.map((textureImage) => {
-                return regl.texture({
-                    data: textureImage,
-                    mag: "linear",
-                    min: "linear",
-                    wrap: ["repeat", "repeat"],
-                });
+                return regl.texture({ data: textureImage, ...textureOptions });
             });
             let activeTexture = 0;
 
@@ -587,10 +589,8 @@
                         textureImages.height = expSize;
                         const oldTexture = textures[t];
                         textures[t] = regl.texture({
-                            data: textureImages,
-                            mag: "linear",
-                            min: "linear",
-                            wrap: ["repeat", "repeat"],
+                            data: textureImages[t],
+                            ...textureOptions,
                         });
 
                         oldTexture.destroy();
@@ -619,7 +619,7 @@
                         zoom: 0.0,
                         zoomClamped: 0.0,
                         zoomFactor: 16,
-                        sheer: 0.0,
+                        sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: -Math.PI / 2.0,
@@ -635,7 +635,7 @@
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
-                        sheer: 0.0,
+                        sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: 0.463776890039444,
@@ -651,7 +651,7 @@
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
-                        sheer: 0.0,
+                        sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: 0.0,
@@ -667,7 +667,7 @@
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
-                        sheer: 0.0,
+                        sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                         escherAngle: 0.0,

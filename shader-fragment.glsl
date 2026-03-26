@@ -1,60 +1,58 @@
 precision mediump float;
+
 uniform sampler2D texture;
+
 uniform float zoomFactor;
 uniform vec2 zoomCenter;
-uniform float zoomClamped;
+
 uniform float zoom;
-uniform float zoomCylic;
-uniform float sheer;
 uniform vec2 ctrl;
-uniform vec2 offset;
-varying vec2 uvOrig;
-uniform float rotation;
+
 uniform float escherAngle;
 uniform float escherScale;
-uniform float warp;
 uniform float plotPolar;
+
+varying vec2 uvCoord;
+
+#define PI 3.141
+
+vec2 rot(vec2 subject, float rad, vec2 pivot) {
+    mat2 rot = mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
+    return rot * (subject - pivot) + pivot;
+}
+
+vec2 rescale(vec2 subject, float factor) {
+    float max = 2.0 * max(abs(subject.x), abs(subject.y)) + 1e-8;
+    float l = log(max) / log(factor);
+    float k = floor(-l);
+    float scale = pow(factor, k);
+
+    return subject * scale;
+}
+
 void main() {
-    vec2 rotoffset = vec2(
-            cos(rotation) * offset.x - sin(rotation) * offset.y,
-            sin(rotation) * offset.x + cos(rotation) * offset.y
-        );
+    vec2 uvCentered = (uvCoord - 0.5) * 2.0;
 
-    vec2 d = (uvOrig - 0.5) * 2.0 + rotoffset;
+    vec2 uvPolar = vec2(
+            log(length(uvCentered)) / log(zoomFactor),
+            atan(uvCentered.y, uvCentered.x) / PI
+        ) / 2.0;
 
-    vec2 polar = vec2(
-            atan(d.y, d.x) / (3.141),
-            log(length(d)) / log(zoomFactor)
-        );
+    vec2 polarOrOriginal = mix(uvPolar, uvCentered, plotPolar);
+    vec2 zoomInLog = rot(vec2(1.0, 0.0), -(escherAngle + ctrl.x), vec2(0.0, 0.0)) * 0.1 * zoom;
+    vec2 rotated = rot(polarOrOriginal + zoomInLog, escherAngle + ctrl.x, vec2(0.0));
+    vec2 rotScaled = rotated * (escherScale + ctrl.y) - 0.5;
 
-    vec2 cpos = mix(polar, d, plotPolar);
-    vec2 uvShifted = vec2(
-            cpos.x * cos(escherAngle + ctrl.x) - cpos.y * sin(escherAngle + ctrl.x),
-            cpos.x * sin(escherAngle + ctrl.x) + cpos.y * cos(escherAngle + ctrl.x)
-        ) / 2.0 * (escherScale + ctrl.y) + vec2(escherAngle + ctrl.x, escherScale + ctrl.y) * zoom * 0.1 - 0.5;
+    float rad = mod(2.0 * rotScaled.x, 1.0);
 
-    float rad = 1.0 / zoomFactor / 1.0 + (1.0 - 1.0 / zoomFactor) * mod(2.0 * uvShifted.y, 1.0);
+    vec2 cartesian = vec2(
+            cos(2.0 * PI * rotScaled.y),
+            sin(2.0 * PI * rotScaled.y)
+        ) * exp(rad * log(zoomFactor)) / log(zoomFactor);
 
-    vec2 cc = vec2(
-            // TODO figure out the rad factor
-            0.5 + cos(2.0 * 3.141 * uvShifted.x) * exp(rad * (exp(1.0) + 0.24)) / log(zoomFactor),
-            0.5 + sin(2.0 * 3.141 * uvShifted.x) * exp(rad * (exp(1.0) + 0.24)) / log(zoomFactor)
-        );
+    vec2 finalUV = rescale(cartesian, zoomFactor) + 0.5 + zoomCenter;
 
-    vec2 uvv = cc;
-    if (abs(uvv.x - 0.5) * 2.0 < 1.0 / zoomFactor / zoomFactor && abs(uvv.y - 0.5) * 2.0 < 1.0 / zoomFactor / zoomFactor) {
-        uvv = (uvv - 0.5) * zoomFactor * zoomFactor + 0.5;
-    } else if (abs(uvv.x - 0.5) * 2.0 < 1.0 / zoomFactor && abs(uvv.y - 0.5) * 2.0 < 1.0 / zoomFactor) {
-        uvv = (uvv - 0.5) * zoomFactor + 0.5;
-    } else if (abs(uvv.x - 0.5) > 0.5 || abs(uvv.y - 0.5) > 0.5) {
-        uvv = (uvv - 0.5) / zoomFactor + 0.5;
-    }
-    uvv = uvv + zoomCenter;
+    vec4 sharp = texture2D(texture, finalUV);
 
-    vec4 sharp = texture2D(texture, uvv);
-
-    vec2 dm = uvOrig - 0.5;
-    float r = length(dm);
-    float mask = smoothstep(0.1, 0.1, r);
     gl_FragColor = sharp;
 }
