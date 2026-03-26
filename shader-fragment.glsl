@@ -52,7 +52,7 @@ void main() {
 
     vec2 finalUV = rescale(cartesian, zoomFactor) + 0.5 + zoomCenter;
 
-    vec4 sharp = texture2D(texture, finalUV);
+    vec4 imageColor = texture2D(texture, finalUV);
 
-    gl_FragColor = sharp;
+    gl_FragColor = imageColor;
 }

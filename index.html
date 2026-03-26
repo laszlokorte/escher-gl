@@ -199,9 +199,13 @@
             }
             svg {
                 z-index: 10;
+                position: fixed;
+                top: 0;
             }
             canvas {
                 z-index: 5;
+                position: fixed;
+                top: 0;
             }
 
             .top {
@@ -231,6 +235,33 @@
             }
             body[movie="yes"] fieldset {
                 display: none;
+            }
+
+            pre {
+                padding: 1ex;
+                background-color: #333;
+                color: #fff;
+                white-space: pre-wrap;
+                flex-grow: 1;
+                margin: 2px 0;
+                user-select: text;
+            }
+            summary {
+                display: block;
+                padding: 1ex;
+                background-color: #3333;
+                cursor: pointer;
+                user-select: none;
+            }
+            details {
+                margin-top: 1ex;
+                flex-grow: 1;
+                user-select: auto;
+                user-select: text;
+            }
+            details:open summary {
+                background-color: #e03031;
+                color: #fff;
             }
         </style>
     </head>
@@ -356,6 +387,13 @@
                     </label>
                     <div id="errorBox"></div>
                 </div>
+                <details>
+                    <summary>Show Shader</summary>
+                    <h3>Vertex Shader</h3>
+                    <pre id="vertexCode"></pre>
+                    <h3>Framgnet Shader</h3>
+                    <pre id="fragmentCode"></pre>
+                </details>
             </fieldset>
         </div>
         <div class="layer loader" id="loader">Loading</div>
@@ -399,9 +437,9 @@
             let zoomCyclic = 0;
             let zoomClamped = 0;
 
-            window.addEventListener("keypress", (evt) => {
+            window.addEventListener("keydown", (evt) => {
                 if (
-                    (evt.key === "Escape" && window.movie.checked) ||
+                    (evt.key == "Escape" && window.movie.checked) ||
                     evt.key == " "
                 ) {
                     window.movie.checked = !window.movie.checked;
@@ -759,6 +797,12 @@
             );
             const fragmentShader = await fetch("./shader-fragment.glsl").then(
                 (r) => r.text(),
+            );
+            window.vertexCode.appendChild(
+                document.createTextNode(vertexShader),
+            );
+            window.fragmentCode.appendChild(
+                document.createTextNode(fragmentShader),
             );
             const regl = createREGL({
                 canvas: cnv,
