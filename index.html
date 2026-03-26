@@ -4,6 +4,10 @@
         <meta charset="utf-8" />
         <title>Escher</title>
         <link rel="icon" href="favicon.svg" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
         <style>
             * {
                 box-sizing: border-box;
@@ -39,20 +43,46 @@
                 align-self: start;
                 height: auto;
                 padding: 2em;
+                touch-action: none;
             }
 
             .control {
                 cursor: move;
             }
 
-            .active {
+            .active circle {
+                stroke: aquamarine;
+                opacity: 1;
+                fill-opacity: 0.5;
+            }
+
+            .active polygon {
                 fill: aquamarine;
+                fill-opacity: 0.5;
+            }
+            .active rect {
+                opacity: 1;
+                fill-opacity: 0.7;
             }
             #debug {
                 display: none;
             }
             circle {
-                opacity: 0.1;
+                opacity: 0.2;
+                stroke: white;
+                stroke-width: 1;
+            }
+            polygon {
+                fill-opacity: 0.8;
+                fill: #ddd;
+            }
+            .dragger[mode="escher"],
+            .dragger[mode="warped"] {
+                display: none;
+            }
+            rect {
+                opacity: 0.2;
+                fill: black;
             }
             pre {
                 pointer-events: none;
@@ -104,7 +134,19 @@
     <body>
         <canvas id="cnv" class="layer"></canvas>
         <svg id="vg" class="layer" viewBox="-100 -100 200 200">
-            <circle id="ctrl" r="14" cx="0" cy="0" class="control"></circle>
+            <g id="ctrl" class="dragger">
+                <circle r="10" cx="0" cy="0" class="control"></circle>
+
+                <polygon points="-2 -4 2 -4 0 -6" fill="white" />
+                <polygon points="-2 4 2 4 0 6" fill="white" />
+                <polygon points="4 -2 4 2 6 0" fill="white" />
+                <polygon points="-4 -2 -4 2 -6 0" fill="white" />
+            </g>
+            <g id="scroller">
+                <rect x="-100" y="-100" width="20" height="200"></rect>
+                <polygon points="-95 20 -85 20 -90 25" fill="white" />
+                <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
+            </g>
         </svg>
         <div class="layer top">
             <fieldset>
@@ -121,12 +163,20 @@
                             Droste Zoom
                         </label>
                         <label>
+                            <input type="radio" value="warped" name="show" />
+                            Warped Zoom
+                        </label>
+                        <label>
                             <input type="radio" value="log" name="show" />
                             Log Map
                         </label>
                         <label>
-                            <input type="radio" value="swirl" name="show" />
+                            <input type="radio" value="escher" name="show" />
                             Escher Zoom
+                        </label>
+                        <label>
+                            <input type="radio" value="free" name="show" />
+                            FreeStyle
                         </label>
                     </form>
                     <label>
@@ -178,9 +228,10 @@
             let zoomClamped = 0;
 
             window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
-                zoom += evt.deltaY / 1400;
+                const delta = evt.deltaY / 1400;
+                zoom += delta;
                 zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                zoomClamped = Math.max(0, Math.min(2, zoom));
+                zoomClamped = Math.max(0, Math.min(2, zoomClamped + delta));
                 window.debug.textContent = Math.round(zoom * 100) / 100;
             });
 
@@ -189,6 +240,9 @@
                 y: 0,
             };
             window.ctrl.addEventListener("pointerdown", (evt) => {
+                if (!evt.isPrimary) {
+                    return;
+                }
                 evt.preventDefault();
                 evt.currentTarget.setPointerCapture(evt.pointerId);
 
@@ -197,18 +251,6 @@
                 offset.y = evt.clientY - bb.top - bb.height / 2;
 
                 evt.currentTarget.classList.add("active");
-            });
-
-            window.showoptions.addEventListener("input", (evt) => {
-                evt.preventDefault();
-                show = Object.fromEntries(new FormData(evt.currentTarget)).show;
-            });
-
-            window.ctrl.addEventListener("dblclick", (evt) => {
-                ctrl.x = 0;
-                ctrl.y = 0;
-                evt.currentTarget.setAttribute("cx", 0);
-                evt.currentTarget.setAttribute("cy", 0);
             });
 
             window.ctrl.addEventListener("pointermove", (evt) => {
@@ -227,8 +269,10 @@
 
                     ctrl.x = svgPos.x / 100;
                     ctrl.y = svgPos.y / 100;
-                    evt.currentTarget.setAttribute("cx", svgPos.x);
-                    evt.currentTarget.setAttribute("cy", svgPos.y);
+                    evt.currentTarget.setAttribute(
+                        "transform",
+                        `translate(${svgPos.x}, ${svgPos.y})`,
+                    );
                 }
             });
 
@@ -237,8 +281,101 @@
                 evt.currentTarget.classList.add("active");
             });
 
+            window.ctrl.addEventListener("pointercancel", (evt) => {
+                evt.currentTarget.classList.remove("active");
+            });
+
             window.ctrl.addEventListener("lostpointercapture", (evt) => {
                 evt.currentTarget.classList.remove("active");
+            });
+            {
+                let offset = {
+                    x: 0,
+                    y: 0,
+                };
+
+                let prev = 0;
+                window.scroller.addEventListener("pointerdown", (evt) => {
+                    if (!evt.isPrimary) {
+                        return;
+                    }
+                    evt.preventDefault();
+                    evt.currentTarget.setPointerCapture(evt.pointerId);
+
+                    const owner = evt.currentTarget.ownerSVGElement;
+                    const bb = evt.currentTarget.getBoundingClientRect();
+                    offset.x = evt.clientX - bb.left - bb.width / 2;
+                    offset.y = evt.clientY - bb.top - bb.height / 2;
+
+                    const pt = owner.createSVGPoint();
+                    pt.x = evt.clientX;
+                    pt.y = evt.clientY;
+
+                    var svgPos = pt.matrixTransform(
+                        owner.getScreenCTM().inverse(),
+                    );
+                    svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+                    prev = svgPos.y;
+
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.scroller.addEventListener("pointermove", (evt) => {
+                    evt.preventDefault();
+                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
+                        const owner = evt.currentTarget.ownerSVGElement;
+                        const pt = owner.createSVGPoint();
+                        pt.x = evt.clientX;
+                        pt.y = evt.clientY;
+
+                        var svgPos = pt.matrixTransform(
+                            owner.getScreenCTM().inverse(),
+                        );
+                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+
+                        console.log(prev);
+                        const delta = (svgPos.y - prev) / 32;
+                        prev = svgPos.y;
+
+                        zoom += delta;
+                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                        zoomClamped = Math.max(
+                            0,
+                            Math.min(2, zoomClamped + delta),
+                        );
+                        window.debug.textContent = Math.round(zoom * 100) / 100;
+                    }
+                });
+
+                window.scroller.addEventListener("gotpointercapture", (evt) => {
+                    evt.preventDefault();
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.scroller.addEventListener(
+                    "lostpointercapture",
+                    (evt) => {
+                        evt.currentTarget.classList.remove("active");
+                    },
+                );
+
+                window.scroller.addEventListener("dblclick", (evt) => {
+                    zoom = 0;
+                    zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                    zoomClamped = Math.max(0, Math.min(2, zoom));
+                });
+            }
+
+            window.showoptions.addEventListener("input", (evt) => {
+                evt.preventDefault();
+                show = Object.fromEntries(new FormData(evt.currentTarget)).show;
+                window.ctrl.setAttribute("mode", show);
+            });
+
+            window.ctrl.addEventListener("dblclick", (evt) => {
+                ctrl.x = 0;
+                ctrl.y = 0;
+                evt.currentTarget.removeAttribute("transform");
             });
 
             const canvas = window.cnv;
@@ -316,14 +453,14 @@
                           precision mediump float;
                           attribute vec2 position;
                           uniform vec2 ctrl;
-                          uniform float zoom;
+                          uniform float zoomCyclic;
                           uniform float sheer;
                           uniform float rotation;
                           varying vec2 uv;
                           varying vec2 uvShifted;
                           void main () {
 
-                            vec2 cpos = (0.5 + (pow(2.0, zoom) * ((vec2(1.0-position.x, position.y + sheer * (position.x - 0.5)) - ctrl / 2.0)- 0.5))) - 0.5;
+                            vec2 cpos = (0.5 + (pow(2.0, zoomCyclic) * ((vec2(1.0-position.x, position.y + sheer * (position.x - 0.5)) - ctrl / 2.0)- 0.5))) - 0.5;
 
                             uvShifted = vec2(
                               cpos.x * cos(rotation) - cpos.y * sin(rotation),
@@ -339,7 +476,7 @@
                 uniforms: {
                     texture,
                     ctrl: regl.prop("ctrl"),
-                    zoom: regl.prop("zoom"),
+                    zoomCyclic: regl.prop("zoomCyclic"),
                     sheer: regl.prop("sheer"),
                     zoomClamped: regl.prop("zoomClamped"),
                     zoomFactor: regl.prop("zoomFactor"),
@@ -499,7 +636,7 @@
                             vec2 uvShifted = vec2(
                               cpos.x * cos(escherAngle + ctrl.x) - cpos.y * sin(escherAngle + ctrl.x ),
                               cpos.x * sin(escherAngle + ctrl.x) + cpos.y * cos(escherAngle + ctrl.x )
-                              ) / 2.0  * (escherScale + ctrl.y )   - vec2(-zoom  * (escherAngle + ctrl.x) , zoom  ) * 0.1 + 0.5;
+                              ) / 2.0  * (escherScale + ctrl.y )   + vec2(escherAngle + ctrl.x ,  escherScale + ctrl.y  ) * zoom * 0.1 + 0.5;
 
                             float rad = 1.0/zoomFactor/1.0 + (1.0-1.0/zoomFactor) * mod(2.0 * (uvShifted.y - 0.5) + 0.5 , 1.0);
 
@@ -595,9 +732,9 @@
                         zoomCenter: [0, 0],
                         rotation: logrotation.valueAsNumber,
                     });
-                } else if (show == "swirl") {
+                } else if (show == "escher") {
                     swirlPlot({
-                        ctrl: [ctrl.x, ctrl.y],
+                        ctrl: [0, 0],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
@@ -608,11 +745,38 @@
                         escherScale: 1.117768667936325,
                         warp: 1,
                     });
-                } else {
+                } else if (show == "free") {
+                    swirlPlot({
+                        ctrl: [ctrl.x, ctrl.y],
+                        zoom,
+                        zoomClamped,
+                        zoomFactor: 16,
+                        sheer: 0.05,
+                        zoomCenter: [0, 0],
+                        rotation: logrotation.valueAsNumber,
+                        escherAngle: 0.0,
+                        escherScale: 1.0,
+                        warp: 1,
+                    });
+                } else if (show == "warped") {
                     swirlPlot({
                         ctrl: [0, 0],
                         zoom,
                         zoomClamped,
+                        zoomFactor: 16,
+                        sheer: 0.05,
+                        zoomCenter: [0, 0],
+                        rotation: logrotation.valueAsNumber,
+                        escherAngle: 0.0,
+                        warp: 1,
+                        escherScale: 1,
+                    });
+                } else {
+                    origPlot({
+                        ctrl: [ctrl.x, ctrl.y],
+                        zoom,
+                        zoomClamped,
+                        zoomCyclic,
                         zoomFactor: 16,
                         sheer: 0.05,
                         zoomCenter: [0, 0],
