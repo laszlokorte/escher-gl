@@ -62,14 +62,39 @@
                 fill: aquamarine;
                 fill-opacity: 0.5;
             }
+
+            .active .rotor {
+                display: none;
+            }
+
+            body:has(#gizmos:not(:checked)) .gizmo,
+            body:has(.active.scroller) .dragger,
+            body:has(.active.rotor) .scroller,
+            body:has(.active.dragger) .scroller {
+                display: none;
+            }
+            body:has(#gizmos:not(:checked)) .touch-area.fallback {
+                display: initial;
+            }
+            body:has(.active) {
+                cursor: none;
+            }
+
+            .rotor.active + .pan {
+                display: none;
+            }
+
+            .active > path {
+                cursor: move;
+                stroke: aquamarine;
+                opacity: 1;
+                fill-opacity: 0.5;
+            }
             .active rect {
                 opacity: 1;
                 fill-opacity: 0.7;
                 stroke: none;
                 stroke-width: 0;
-            }
-            #debug {
-                display: none;
             }
             circle {
                 opacity: 0.2;
@@ -79,6 +104,12 @@
             polygon {
                 fill-opacity: 0.8;
                 fill: #ddd;
+            }
+
+            path {
+                opacity: 0.2;
+                stroke: white;
+                stroke-width: 1;
             }
             text {
                 fill: #fff;
@@ -126,6 +157,26 @@
                 gap: 1em;
                 accent-color: #e03031;
             }
+            button {
+                border: none;
+                display: flex;
+                gap: 1ex;
+                align-items: center;
+                background-color: #fffa;
+                width: max-content;
+                padding: 1ex;
+                user-select: none;
+            }
+
+            button:hover,
+            label:has(> input[type="radio"]:not(:checked)):hover,
+            label:has(> input[type="checkbox"]:not(:checked)):hover {
+                color: #a03035;
+            }
+            button:active {
+                background-color: #e03035;
+                color: #fff;
+            }
 
             label:has(> :checked) {
                 background-color: #e03031;
@@ -163,6 +214,10 @@
                 pointer-events: all;
             }
 
+            .touch-area.fallback {
+                display: none;
+            }
+
             .loader {
                 z-index: 100;
                 background-color: #594732;
@@ -171,10 +226,18 @@
                 place-content: center;
                 font-size: 2em;
             }
+            body[movie="yes"] svg {
+                display: none;
+            }
+            body[movie="yes"] fieldset {
+                display: none;
+            }
         </style>
     </head>
     <body>
-        <canvas id="cnv" class="layer"></canvas>
+        <label style="display: contents" for="movie">
+            <canvas id="cnv" class="layer" tabindex="-1"></canvas>
+        </label>
         <svg
             id="vg"
             class="layer"
@@ -182,23 +245,57 @@
             preserveAspectRatio="xMidYMid slice"
         >
             <g id="ctrl" class="dragger">
-                <circle r="25" cx="0" cy="0" class="touch-area"></circle>
-                <circle r="10" cx="0" cy="0" class="control"></circle>
+                <rect
+                    fill="green"
+                    x="-200"
+                    y="-200"
+                    width="400"
+                    height="400"
+                    class="touch-area fallback"
+                ></rect>
+                <circle r="30" cx="0" cy="0" class="touch-area"></circle>
+                <g id="rotor" class="rotor gizmo">
+                    <path
+                        fill="black"
+                        opacity="0.2"
+                        fill-rule="evenodd"
+                        d="
+                        M 0,0
+                        m -50,0
+                        a 50,50 0 1,0 100,0
+                        a 50,50 0 1,0 -100,0
+                        z
 
-                <polygon points="-2 -4 2 -4 0 -6" fill="white" />
-                <polygon points="-2 4 2 4 0 6" fill="white" />
-                <polygon points="4 -2 4 2 6 0" fill="white" />
-                <polygon points="-4 -2 -4 2 -6 0" fill="white" />
-                <text
-                    class="help"
-                    x="0"
-                    y="1"
-                    text-anchor="middle"
-                    font-size="3"
-                    fill="white"
-                >
-                    Drag
-                </text>
+                        M 0,0
+                        m -40,0
+                        a 40,40 0 1,0 80,0
+                        a 40,40 0 1,0 -80,0
+                        z
+                        M 0 40 v 3
+                        M 0 -40 v -7
+                        M  40 0 h 3
+                        M  -40 0 h -3
+                      "
+                    />
+                </g>
+                <g class="pan gizmo">
+                    <circle r="10" cx="0" cy="0" class="control"></circle>
+
+                    <polygon points="-2 -4 2 -4 0 -6" fill="white" />
+                    <polygon points="-2 4 2 4 0 6" fill="white" />
+                    <polygon points="4 -2 4 2 6 0" fill="white" />
+                    <polygon points="-4 -2 -4 2 -6 0" fill="white" />
+                    <text
+                        class="help"
+                        x="0"
+                        y="1"
+                        text-anchor="middle"
+                        font-size="3"
+                        fill="white"
+                    >
+                        Drag
+                    </text>
+                </g>
             </g>
         </svg>
         <svg
@@ -208,7 +305,7 @@
             style="justify-self: start; width: 10vw; height: 100%"
             preserveAspectRatio="xMinYMid meet"
         >
-            <g id="scroller">
+            <g id="scroller" class="scroller gizmo">
                 <rect x="-100.1" y="-100" width="20" height="200"></rect>
                 <polygon points="-95 20 -85 20 -90 25" fill="white" />
                 <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
@@ -235,31 +332,31 @@
                                 <option disabled>Choose</option>
                             </select>
                         </label>
+                        <label>
+                            <input
+                                style="display: none"
+                                type="checkbox"
+                                id="movie"
+                                name="movie"
+                                value="yes"
+                            />
+                            Autoplay
+                        </label>
                     </form>
+                    <button id="fullscreen">Fullscreen</button>
                     <label>
-                        rotation
                         <input
-                            type="range"
-                            id="logrotation"
-                            min="-3.2"
-                            max="3.2"
-                            style="flex-grow: 1; width: 100%"
-                            step="0.01"
-                            value="0.0"
-                            oninput="this.nextElementSibling.value = this.value"
+                            type="checkbox"
+                            id="gizmos"
+                            name="gizmos"
+                            checked
+                            value="yes"
                         />
-                        <output
-                            ondblclick="
-                                this.previousElementSibling.value = 0.0;
-                                this.value = 0.0;
-                            "
-                            >0.0</output
-                        >
+                        Gizmos
                     </label>
                     <div id="errorBox"></div>
                 </div>
             </fieldset>
-            <pre id="debug" class="layer"></pre>
         </div>
         <div class="layer loader" id="loader">Loading</div>
         <script src="regl.js"></script>
@@ -296,89 +393,155 @@
             });
 
             const ctrl = { x: 0, y: 0 };
+            let rotation = 0;
             let show = "droste";
             let zoom = 0;
             let zoomCyclic = 0;
             let zoomClamped = 0;
 
+            window.addEventListener("keypress", (evt) => {
+                if (
+                    (evt.key === "Escape" && window.movie.checked) ||
+                    evt.key == " "
+                ) {
+                    window.movie.checked = !window.movie.checked;
+                    window.movie.dispatchEvent(
+                        new Event("input", { bubbles: true }),
+                    );
+                }
+            });
+
+            function toggleFullScreen(invoker) {
+                const fullscreenElement =
+                    document.fullscreenElement ||
+                    document.webkitFullscreenElement;
+
+                if (!fullscreenElement) {
+                    if (invoker.requestFullscreen) {
+                        invoker.requestFullscreen();
+                    } else if (invoker.webkitRequestFullscreen) {
+                        invoker.webkitRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
+                }
+            }
+
+            window.fullscreen.addEventListener("click", (evt) => {
+                toggleFullScreen(document.body);
+            });
+
+            window.addEventListener("fullscreenchange", (event) => {
+                if (window.movie.checked) {
+                    window.movie.checked = false;
+                    window.movie.dispatchEvent(
+                        new Event("input", { bubbles: true }),
+                    );
+                }
+            });
+
+            window.movie.checked = false;
+
             window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
+                evt.preventDefault();
+                evt.stopPropagation();
                 const delta = evt.deltaY / 1400;
-                zoom += delta;
-                zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                zoomClamped = Math.max(0, Math.min(2, zoomClamped + delta));
-                window.debug.textContent = Math.round(zoom * 100) / 100;
-            });
-
-            let offset = {
-                x: 0,
-                y: 0,
-            };
-            window.ctrl.addEventListener("pointerdown", (evt) => {
-                if (!evt.isPrimary) {
-                    return;
+                if (evt.ctrlKey || evt.metaKey) {
+                    rotation += delta;
+                } else {
+                    zoom += delta;
+                    zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                    zoomClamped = Math.max(0, Math.min(2, zoomClamped + delta));
                 }
-                evt.preventDefault();
-                evt.currentTarget.setPointerCapture(evt.pointerId);
-
-                const bb = evt.currentTarget.getBoundingClientRect();
-                offset.x = evt.clientX - bb.left - bb.width / 2;
-                offset.y = evt.clientY - bb.top - bb.height / 2;
-
-                evt.currentTarget.classList.add("active");
-            });
-
-            window.ctrl.addEventListener("pointermove", (evt) => {
-                evt.preventDefault();
-                if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
-                    const owner = evt.currentTarget.ownerSVGElement;
-                    const pt = owner.createSVGPoint();
-                    pt.x = Math.max(
-                        0.1 * window.innerWidth,
-                        Math.min(window.innerWidth, evt.clientX - offset.x),
-                    );
-                    pt.y = Math.max(
-                        0,
-                        Math.min(window.innerHeight, evt.clientY - offset.y),
-                    );
-
-                    var svgPos = pt.matrixTransform(
-                        owner.getScreenCTM().inverse(),
-                    );
-                    svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
-                    svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
-
-                    ctrl.x = svgPos.x / 100;
-                    ctrl.y = svgPos.y / 100;
-                    evt.currentTarget.setAttribute(
-                        "transform",
-                        `translate(${svgPos.x}, ${svgPos.y})`,
-                    );
-                }
-            });
-
-            window.ctrl.addEventListener("gotpointercapture", (evt) => {
-                evt.preventDefault();
-                evt.currentTarget.classList.add("active");
-            });
-
-            window.ctrl.addEventListener("pointercancel", (evt) => {
-                evt.currentTarget.classList.remove("active");
-            });
-
-            window.ctrl.addEventListener("lostpointercapture", (evt) => {
-                evt.currentTarget.classList.remove("active");
             });
             {
                 let offset = {
                     x: 0,
                     y: 0,
                 };
+                window.ctrl.addEventListener("pointerdown", (evt) => {
+                    evt.preventDefault();
+                    evt.currentTarget.setPointerCapture(evt.pointerId);
 
+                    const bb = evt.currentTarget.getBoundingClientRect();
+                    offset.x = evt.clientX - bb.left - bb.width / 2;
+                    offset.y = evt.clientY - bb.top - bb.height / 2;
+
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.ctrl.addEventListener("pointermove", (evt) => {
+                    evt.preventDefault();
+                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
+                        const owner = evt.currentTarget.ownerSVGElement;
+                        const pt = owner.createSVGPoint();
+                        pt.x = Math.max(
+                            0.1 * window.innerWidth,
+                            Math.min(window.innerWidth, evt.clientX - offset.x),
+                        );
+                        pt.y = Math.max(
+                            0,
+                            Math.min(
+                                window.innerHeight,
+                                evt.clientY - offset.y,
+                            ),
+                        );
+
+                        const svgPos = pt.matrixTransform(
+                            owner.getScreenCTM().inverse(),
+                        );
+                        svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
+                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+
+                        ctrl.x = svgPos.x / 100;
+                        ctrl.y = svgPos.y / 100;
+                        evt.currentTarget.setAttribute(
+                            "transform",
+                            `translate(${svgPos.x}, ${svgPos.y})`,
+                        );
+                    }
+                });
+
+                window.ctrl.addEventListener("gotpointercapture", (evt) => {
+                    evt.preventDefault();
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.ctrl.addEventListener("pointercancel", (evt) => {
+                    evt.currentTarget.classList.remove("active");
+                });
+
+                window.ctrl.addEventListener("lostpointercapture", (evt) => {
+                    evt.currentTarget.classList.remove("active");
+                });
+            }
+            {
+                let offset = {
+                    x: 0,
+                    y: 0,
+                };
+
+                window.scroller.ownerSVGElement.addEventListener(
+                    "wheel",
+                    (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        const delta = evt.deltaY / 1400;
+
+                        zoom += delta;
+                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                        zoomClamped = Math.max(
+                            0,
+                            Math.min(2, zoomClamped + delta),
+                        );
+                    },
+                );
                 let prev = 0;
                 window.scroller.addEventListener("pointerdown", (evt) => {
-                    if (!evt.isPrimary) {
-                        return;
-                    }
                     evt.preventDefault();
                     evt.currentTarget.setPointerCapture(evt.pointerId);
 
@@ -391,7 +554,7 @@
                     pt.x = evt.clientX;
                     pt.y = evt.clientY;
 
-                    var svgPos = pt.matrixTransform(
+                    const svgPos = pt.matrixTransform(
                         owner.getScreenCTM().inverse(),
                     );
                     svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
@@ -408,7 +571,7 @@
                         pt.x = evt.clientX;
                         pt.y = evt.clientY;
 
-                        var svgPos = pt.matrixTransform(
+                        const svgPos = pt.matrixTransform(
                             owner.getScreenCTM().inverse(),
                         );
 
@@ -421,7 +584,6 @@
                             0,
                             Math.min(2, zoomClamped + delta),
                         );
-                        window.debug.textContent = Math.round(zoom * 100) / 100;
                     }
                 });
 
@@ -443,8 +605,107 @@
                     zoomClamped = Math.max(0, Math.min(2, zoom));
                 });
             }
+            {
+                let prev = {
+                    x: 0,
+                    y: 0,
+                };
+                window.rotor.addEventListener("wheel", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    const delta = evt.deltaY / 1400;
 
-            const visuals = ["droste", "log", "escher", "free"];
+                    rotation += delta;
+                });
+
+                window.rotor.addEventListener("dblclick", (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    rotation = 0;
+
+                    evt.currentTarget.removeAttribute("transform");
+                });
+
+                window.rotor.addEventListener("pointerdown", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    evt.currentTarget.setPointerCapture(evt.pointerId);
+
+                    const owner = evt.currentTarget.ownerSVGElement;
+                    const ctm = owner.getScreenCTM().inverse();
+
+                    const pt = owner.createSVGPoint();
+                    pt.x = evt.clientX;
+                    pt.y = evt.clientY;
+
+                    const ptC = owner.createSVGPoint();
+                    const bb = evt.currentTarget.getBoundingClientRect();
+                    ptC.x = bb.left + bb.width / 2;
+                    ptC.y = bb.top + bb.height / 2;
+
+                    const svgPos = pt.matrixTransform(ctm);
+                    const svgPosCenter = ptC.matrixTransform(ctm);
+                    prev.x = svgPos.x - svgPosCenter.x;
+                    prev.y = svgPos.y - svgPosCenter.y;
+
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.rotor.addEventListener("pointermove", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
+                        const owner = evt.currentTarget.ownerSVGElement;
+                        const ctm = owner.getScreenCTM().inverse();
+
+                        const pt = owner.createSVGPoint();
+                        pt.x = evt.clientX;
+                        pt.y = evt.clientY;
+
+                        const ptC = owner.createSVGPoint();
+                        const bb = evt.currentTarget.getBoundingClientRect();
+                        ptC.x = bb.left + bb.width / 2;
+                        ptC.y = bb.top + bb.height / 2;
+
+                        const svgPos = pt.matrixTransform(ctm);
+                        const svgPosCenter = ptC.matrixTransform(ctm);
+
+                        svgPos.x -= svgPosCenter.x;
+                        svgPos.y -= svgPosCenter.y;
+
+                        const angle = Math.atan2(
+                            svgPos.x * prev.y - svgPos.y * prev.x,
+                            svgPos.x * prev.x + svgPos.y * prev.y,
+                        );
+
+                        prev.x = svgPos.x;
+                        prev.y = svgPos.y;
+                        rotation += angle;
+                        evt.currentTarget.setAttribute(
+                            "transform",
+                            `rotate(${(-rotation * 180) / Math.PI})`,
+                        );
+                    }
+                });
+
+                window.rotor.addEventListener("gotpointercapture", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.rotor.addEventListener("pointercancel", (evt) => {
+                    evt.stopPropagation();
+                    evt.currentTarget.classList.remove("active");
+                });
+
+                window.rotor.addEventListener("lostpointercapture", (evt) => {
+                    evt.stopPropagation();
+                    evt.currentTarget.classList.remove("active");
+                });
+            }
+
+            const visuals = ["droste", "log", "escher", "freestyle"];
 
             for (const v of visuals) {
                 const l = document.createElement("label");
@@ -457,7 +718,6 @@
                 l.appendChild(document.createTextNode(v));
                 window.optionlist.appendChild(l);
             }
-
             window.showoptions.addEventListener("input", (evt) => {
                 evt.preventDefault();
                 const formValues = Object.fromEntries(
@@ -466,9 +726,15 @@
                 show = formValues.show;
                 activeTexture = formValues.image;
                 window.ctrl.setAttribute("mode", show);
+                document.body.setAttribute("movie", formValues.movie ?? "no");
+                if (formValues.movie) {
+                    window.cnv.parentNode.focus();
+                }
             });
 
             window.ctrl.addEventListener("dblclick", (evt) => {
+                evt.preventDefault();
+                evt.stopPropagation();
                 ctrl.x = 0;
                 ctrl.y = 0;
                 evt.currentTarget.removeAttribute("transform");
@@ -602,6 +868,9 @@
             window.addEventListener("resize", rsz);
 
             regl.frame(({ time }) => {
+                if (window.movie.checked) {
+                    zoom -= 0.01;
+                }
                 regl.clear({
                     color: [0, 0, 0, 0],
                     depth: 1,
@@ -612,6 +881,9 @@
                 }
 
                 if (show === "log") {
+                    if (window.movie.checked) {
+                        ctrl.y = ((ctrl.y + 0.01 + 1) % 2) - 1;
+                    }
                     swirlPlot({
                         texture: textures[activeTexture],
                         ctrl: [0, 0],
@@ -621,7 +893,7 @@
                         zoomFactor: 16,
                         sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
-                        rotation: logrotation.valueAsNumber,
+                        rotation: rotation,
                         escherAngle: -Math.PI / 2.0,
                         escherScale: Math.pow(2, zoomClamped),
                         warp: 1,
@@ -637,13 +909,13 @@
                         zoomFactor: 16,
                         sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
-                        rotation: logrotation.valueAsNumber,
+                        rotation: rotation,
                         escherAngle: 0.463776890039444,
                         escherScale: 1.117768667936325,
                         warp: 1,
                         plotPolar: 0,
                     });
-                } else if (show == "free") {
+                } else if (show == "freestyle") {
                     swirlPlot({
                         texture: textures[activeTexture],
                         ctrl: [ctrl.x, ctrl.y],
@@ -653,7 +925,7 @@
                         zoomFactor: 16,
                         sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
-                        rotation: logrotation.valueAsNumber,
+                        rotation: rotation,
                         escherAngle: 0.0,
                         escherScale: 1.0,
                         warp: 1,
@@ -669,7 +941,7 @@
                         zoomFactor: 16,
                         sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
-                        rotation: logrotation.valueAsNumber,
+                        rotation: rotation,
                         escherAngle: 0.0,
                         warp: 1,
                         escherScale: 1,
