@@ -95,11 +95,13 @@
                 background-color: #300d48;
                 color: #fff;
                 padding: 0.5ex 1ex;
+                user-select: none;
             }
             fieldset {
                 border: none;
                 background-color: #fffc;
                 border: 2px solid #300d48;
+                user-select: none;
             }
             label {
                 display: flex;
@@ -153,7 +155,12 @@
     </head>
     <body>
         <canvas id="cnv" class="layer"></canvas>
-        <svg id="vg" class="layer" viewbox="-100 -100 200 200">
+        <svg
+            id="vg"
+            class="layer"
+            viewbox="-100 -100 200 200"
+            preserveAspectRatio="xMidYMid slice"
+        >
             <g id="ctrl" class="dragger">
                 <circle r="25" cx="0" cy="0" class="touch-area"></circle>
                 <circle r="10" cx="0" cy="0" class="control"></circle>
@@ -163,6 +170,14 @@
                 <polygon points="4 -2 4 2 6 0" fill="white" />
                 <polygon points="-4 -2 -4 2 -6 0" fill="white" />
             </g>
+        </svg>
+        <svg
+            id="vg"
+            class="layer"
+            viewbox="-100 -100 20 200"
+            style="justify-self: start; width: 10vw; height: 100%"
+            preserveAspectRatio="xMinYMid meet"
+        >
             <g id="scroller">
                 <rect x="-100.1" y="-100" width="20" height="200"></rect>
                 <polygon points="-95 20 -85 20 -90 25" fill="white" />
@@ -206,11 +221,11 @@
                             style="flex-grow: 1; width: 100%"
                             step="0.01"
                             value="0.0"
-                            oninput="this.nextelementsibling.value = this.value"
+                            oninput="this.nextElementSibling.value = this.value"
                         />
                         <output
                             ondblclick="
-                                this.previouselementsibling.value = 0.0;
+                                this.previousElementSibling.value = 0.0;
                                 this.value = 0.0;
                             "
                             >0.0</output
@@ -237,6 +252,12 @@
                     texture.src = url;
                 });
             }
+
+            window.addEventListener("error", (evt) => {
+                window.showoptions.appendChild(
+                    document.createTextNode(evt.message),
+                );
+            });
 
             const ctrl = { x: 0, y: 0 };
             let show = "orig";
@@ -275,8 +296,14 @@
                 if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                     const owner = evt.currentTarget.ownerSVGElement;
                     const pt = owner.createSVGPoint();
-                    pt.x = evt.clientX - offset.x;
-                    pt.y = evt.clientY - offset.y;
+                    pt.x = Math.max(
+                        0.1 * window.innerWidth,
+                        Math.min(window.innerWidth, evt.clientX - offset.x),
+                    );
+                    pt.y = Math.max(
+                        0,
+                        Math.min(window.innerHeight, evt.clientY - offset.y),
+                    );
 
                     var svgPos = pt.matrixTransform(
                         owner.getScreenCTM().inverse(),
@@ -348,9 +375,7 @@
                         var svgPos = pt.matrixTransform(
                             owner.getScreenCTM().inverse(),
                         );
-                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
 
-                        console.log(prev);
                         const delta = (svgPos.y - prev) / 32;
                         prev = svgPos.y;
 
@@ -397,10 +422,16 @@
 
             const canvas = window.cnv;
 
+            const minSize = Math.min(window.innerWidth, window.innerHeight);
+            const expSize = Math.pow(
+                2,
+                Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
+            );
+
             const textureImage = await loadImage(
                 "escher.svg",
-                2 * 2048,
-                2 * 2048,
+                expSize,
+                expSize,
             );
             const vertexShader = await fetch("./shader-vertex.glsl").then((r) =>
                 r.text(),
@@ -417,33 +448,33 @@
                 },
             });
 
-            const texture = regl.texture({
+            let texture = regl.texture({
                 data: textureImage,
-                mipmap: "nice",
                 mag: "linear",
                 min: "linear",
                 wrap: ["repeat", "repeat"],
             });
+
             const swirlPlot = regl({
                 viewport: {
                     x: () =>
                         ((window.innerWidth -
-                            Math.min(window.innerWidth, window.innerHeight)) /
+                            Math.max(window.innerWidth, window.innerHeight)) /
                             2) *
                         window.devicePixelRatio *
                         2,
                     y: () =>
                         ((window.innerHeight -
-                            Math.min(window.innerWidth, window.innerHeight)) /
+                            Math.max(window.innerWidth, window.innerHeight)) /
                             2) *
                         window.devicePixelRatio *
                         2,
                     width: () =>
-                        Math.min(window.innerWidth, window.innerHeight) *
+                        Math.max(window.innerWidth, window.innerHeight) *
                         window.devicePixelRatio *
                         2,
                     height: () =>
-                        Math.min(window.innerWidth, window.innerHeight) *
+                        Math.max(window.innerWidth, window.innerHeight) *
                         window.devicePixelRatio *
                         2,
                 },
@@ -455,7 +486,7 @@
                 },
 
                 uniforms: {
-                    texture,
+                    texture: regl.prop("texture"),
                     ctrl: regl.prop("ctrl"),
                     offset: regl.prop("offset"),
                     zoom: regl.prop("zoom"),
@@ -474,10 +505,31 @@
 
                 count: 3,
             });
+
             function rsz() {
                 canvas.width = window.innerWidth * window.devicePixelRatio * 2;
                 canvas.height =
                     window.innerHeight * window.devicePixelRatio * 2;
+
+                const minSize = Math.min(window.innerWidth, window.innerHeight);
+                const expSize = Math.pow(
+                    2,
+                    Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
+                );
+
+                if (textureImage.width < expSize) {
+                    textureImage.width = expSize;
+                    textureImage.height = expSize;
+                    const oldTexture = texture;
+                    texture = regl.texture({
+                        data: textureImage,
+                        mag: "linear",
+                        min: "linear",
+                        wrap: ["repeat", "repeat"],
+                    });
+
+                    oldTexture.destroy();
+                }
             }
             rsz();
 
@@ -491,6 +543,7 @@
 
                 if (show === "log") {
                     swirlPlot({
+                        texture,
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom: 0.0,
@@ -506,6 +559,7 @@
                     });
                 } else if (show == "escher") {
                     swirlPlot({
+                        texture,
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
@@ -521,6 +575,7 @@
                     });
                 } else if (show == "free") {
                     swirlPlot({
+                        texture,
                         ctrl: [ctrl.x, ctrl.y],
                         offset: [0, 0],
                         zoom,
@@ -536,6 +591,7 @@
                     });
                 } else {
                     swirlPlot({
+                        texture,
                         ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
