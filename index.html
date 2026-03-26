@@ -77,8 +77,8 @@
                 fill-opacity: 0.8;
                 fill: #ddd;
             }
-            .dragger[mode="escher"],
-            .dragger[mode="warped"] {
+            .dragger[mode="-escher"],
+            .dragger[mode="-warped"] {
                 display: none;
             }
             rect {
@@ -636,6 +636,7 @@
                           uniform float zoomCylic;
                           uniform float sheer;
                           uniform vec2 ctrl;
+                          uniform vec2 offset;
                           varying vec2 uvOrig;
                           uniform float rotation;
                           uniform float escherAngle;
@@ -643,7 +644,7 @@
                           uniform float warp;
                           void main () {
 
-                          vec2 d = (uvOrig - 0.5);
+                          vec2 d = (uvOrig - 0.5) + offset * 0.5;
 
                           vec2 polar = vec2(
                             atan(d.y, d.x) / (3.141) ,
@@ -709,6 +710,7 @@
                 uniforms: {
                     texture,
                     ctrl: regl.prop("ctrl"),
+                    offset: regl.prop("offset"),
                     zoom: regl.prop("zoom"),
                     warp: regl.prop("warp"),
                     sheer: regl.prop("sheer"),
@@ -753,6 +755,7 @@
                 } else if (show == "escher") {
                     swirlPlot({
                         ctrl: [0, 0],
+                        offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
@@ -766,6 +769,7 @@
                 } else if (show == "free") {
                     swirlPlot({
                         ctrl: [ctrl.x, ctrl.y],
+                        offset: [0, 0],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
@@ -779,6 +783,7 @@
                 } else if (show == "warped") {
                     swirlPlot({
                         ctrl: [0, 0],
+                        offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
