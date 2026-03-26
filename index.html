@@ -570,7 +570,6 @@
               }`,
 
                 vert: `
-                precision highp float;
               precision mediump float;
               attribute vec2 position;
               uniform vec2 ctrl;
@@ -626,7 +625,6 @@
                 },
                 frag: `
 
-                            precision highp float;
                           precision mediump float;
                           uniform sampler2D texture;
                           uniform float zoomFactor;
@@ -644,7 +642,12 @@
                           uniform float warp;
                           void main () {
 
-                          vec2 d = (uvOrig - 0.5) + offset * 0.5;
+                          vec2 rotoffset = vec2(
+                            cos(rotation) * offset.x - sin(rotation) * offset.y,
+                            sin(rotation) * offset.x + cos(rotation) * offset.y
+                          );
+
+                          vec2 d = (uvOrig - 0.5) + rotoffset * 0.5;
 
                           vec2 polar = vec2(
                             atan(d.y, d.x) / (3.141) ,
@@ -687,7 +690,6 @@
                           }`,
 
                 vert: `
-                          precision highp float;
                           precision mediump float;
                           attribute vec2 position;
                           uniform vec2 ctrl;
