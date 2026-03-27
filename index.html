@@ -130,6 +130,9 @@
             pre {
                 pointer-events: none;
             }
+            a {
+                color: #300d48;
+            }
             legend {
                 background-color: #300d48;
                 color: #fff;
@@ -141,6 +144,8 @@
                 background-color: #fffc;
                 border: 2px solid #300d48;
                 user-select: none;
+                max-height: 80vh;
+                overflow: auto;
             }
             label {
                 display: flex;
@@ -148,8 +153,9 @@
                 align-items: center;
                 background-color: #fffa;
                 width: max-content;
-                padding: 1ex;
+                padding: 1ex 1.5ex;
                 user-select: none;
+                line-height: 1;
             }
             .ctrls {
                 display: flex;
@@ -168,6 +174,12 @@
                 user-select: none;
             }
 
+            input[type="radio"],
+            input[type="checkbox"] {
+                padding: 0;
+                margin: 0;
+            }
+
             button:hover,
             label:has(> input[type="radio"]:not(:checked)):hover,
             label:has(> input[type="checkbox"]:not(:checked)):hover {
@@ -176,6 +188,12 @@
             button:active {
                 background-color: #e03035;
                 color: #fff;
+            }
+
+            .ctrls a {
+                color: #e03035;
+                align-self: center;
+                padding: 1ex;
             }
 
             label:has(> :checked) {
@@ -258,6 +276,10 @@
                 flex-grow: 1;
                 user-select: auto;
                 user-select: text;
+                background-color: #fff;
+            }
+            details:open::details-content {
+                margin: 1em;
             }
             details:open summary {
                 background-color: #e03031;
@@ -385,6 +407,11 @@
                         />
                         Gizmos
                     </label>
+                    <a
+                        href="https://www.youtube.com/watch?v=16qMC_y_MY0"
+                        target="_blank"
+                        >Demo Video</a
+                    >
                     <div id="errorBox"></div>
                 </div>
                 <details>
@@ -400,14 +427,18 @@
                     </p>
                     <p>
                         <b>To summarize:</b> The original idea is popularized by
-                        <a href="https://en.wikipedia.org/wiki/M._C._Escher"
+                        <a
+                            target="_blank"
+                            href="https://en.wikipedia.org/wiki/M._C._Escher"
                             >M. C. Escher</a
                         >
                         in their artworks.
                     </p>
                     <p>
                         The
-                        <a href="https://en.wikipedia.org/wiki/Droste_effect"
+                        <a
+                            target="_blank"
+                            href="https://en.wikipedia.org/wiki/Droste_effect"
                             >droste effect</a
                         >
                         is the idea of embedding a smaller version of an image
@@ -423,7 +454,9 @@
                     </p>
                     <p>
                         This effect can also be recognized as
-                        <a href="https://en.wikipedia.org/wiki/Strange_loop"
+                        <a
+                            target="_blank"
+                            href="https://en.wikipedia.org/wiki/Strange_loop"
                             >strange loop</a
                         >
                         as done by
@@ -512,6 +545,17 @@
                     <p>
                         Below you can read the WebGL vertex and and fragment
                         shaders for doing the the transformation.
+                    </p>
+                    <p>
+                        Some other people have already built some really cool
+                        demos of the same effect. For example this
+                        <a href="https://www.cindyjs.org/gallery/main/Droste/"
+                            >recreation Eschers Print Gallery</a
+                        >
+                        and
+                        <a href="https://www.cindyjs.org/gallery/main/Jugglers/"
+                            >the same effect to applied to playing video.</a
+                        >
                     </p>
                     <h3>Vertex Shader</h3>
                     <pre id="vertexCode"></pre>
