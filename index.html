@@ -701,6 +701,10 @@
                 const delta = evt.deltaY / 1400;
                 if (evt.ctrlKey || evt.metaKey) {
                     rotation += delta;
+                    window.rotor.setAttribute(
+                        "transform",
+                        `rotate(${(-rotation * 180) / Math.PI})`,
+                    );
                 } else {
                     zoom += delta;
                     zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
@@ -865,6 +869,10 @@
                     const delta = evt.deltaY / 1400;
 
                     rotation += delta;
+                    window.rotor.setAttribute(
+                        "transform",
+                        `rotate(${(-rotation * 180) / Math.PI})`,
+                    );
                 });
 
                 window.rotor.addEventListener("dblclick", (evt) => {
