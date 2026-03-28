@@ -290,6 +290,23 @@
                 display: grid;
                 place-content: center;
                 font-size: 2em;
+                background-image: url("house.svg");
+                background-size: cover;
+                background-position: 50% 50%;
+            }
+            .loader::after {
+                content: "Loading...";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                backdrop-filter: blur(1em);
+                display: grid;
+                justify-content: center;
+                align-content: center;
+                font-size: 2em;
+                text-shadow: 0 0 0.5ex #000c;
             }
             body[movie="yes"] svg {
                 display: none;
@@ -1008,20 +1025,29 @@
             const images = ["house.svg", "grid.svg"];
             const sheers = [0.1, 0.0];
 
-            const textureImages = await Promise.all(
+            const shaderLoader = await Promise.all(
+                Object.entries({
+                    vertex: "./shader-vertex.glsl",
+                    fragment: "./shader-fragment.glsl",
+                }).map(([k, v]) =>
+                    fetch(v).then((r) => r.text().then((t) => [k, t])),
+                ),
+            ).then((s) => Object.fromEntries(s));
+
+            const textureImagesLoader = await Promise.all(
                 images.map((i) => loadImage(i, expSize, expSize)),
             );
-            const vertexShader = await fetch("./shader-vertex.glsl").then((r) =>
-                r.text(),
-            );
-            const fragmentShader = await fetch("./shader-fragment.glsl").then(
-                (r) => r.text(),
-            );
+
+            const [textureImages, shaders] = await Promise.all([
+                textureImagesLoader,
+                shaderLoader,
+            ]);
+
             window.vertexCode.appendChild(
-                document.createTextNode(vertexShader),
+                document.createTextNode(shaders.vertex),
             );
             window.fragmentCode.appendChild(
-                document.createTextNode(fragmentShader),
+                document.createTextNode(shaders.fragment),
             );
             const regl = createREGL({
                 canvas: cnv,
@@ -1058,13 +1084,11 @@
                 viewport: {
                     x: () => 0,
                     y: () => 0,
-                    width: () =>
-                        window.innerWidth * window.devicePixelRatio * 2,
-                    height: () =>
-                        window.innerHeight * window.devicePixelRatio * 2,
+                    width: () => window.innerWidth * window.devicePixelRatio,
+                    height: () => window.innerHeight * window.devicePixelRatio,
                 },
-                frag: fragmentShader,
-                vert: vertexShader,
+                frag: shaders.fragment,
+                vert: shaders.vertex,
 
                 attributes: {
                     position: [-2, 0, 0, -2, 2, 2],
@@ -1093,9 +1117,8 @@
             });
 
             function rsz() {
-                canvas.width = window.innerWidth * window.devicePixelRatio * 2;
-                canvas.height =
-                    window.innerHeight * window.devicePixelRatio * 2;
+                canvas.width = window.innerWidth * window.devicePixelRatio;
+                canvas.height = window.innerHeight * window.devicePixelRatio;
 
                 const minSize = Math.min(window.innerWidth, window.innerHeight);
                 const expSize = Math.pow(
