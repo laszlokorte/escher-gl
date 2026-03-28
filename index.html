@@ -99,8 +99,7 @@
             circle {
                 opacity: 0.2;
                 stroke: white;
-                stroke-width: 2;
-                vector-effect: non-scaling-stroke;
+                stroke-width: 1;
             }
             polygon {
                 fill-opacity: 0.8;
@@ -110,8 +109,7 @@
             path {
                 opacity: 0.2;
                 stroke: white;
-                stroke-width: 2;
-                vector-effect: non-scaling-stroke;
+                stroke-width: 1;
             }
             text {
                 fill: #fff;
@@ -165,65 +163,30 @@
                 gap: 1em;
                 accent-color: #e03031;
             }
-            input[type="radio"],
-            input[type="checkbox"] {
-                padding: 0.3em;
-                width: 0.5em;
-                height: 0.5em;
-                border: 1px solid #555;
-                appearance: none;
-                margin: 0;
-                background-color: #fff;
-                display: grid;
-                justify-content: center;
-                align-content: center;
-                box-sizing: border-box;
-                grid-template-columns: 100%;
-                box-sizing: content-box;
-                grid-template-rows: 100%;
-            }
-
-            input[type="radio"]:checked::after {
-                content: "";
-                align-self: stretch;
-                justify-self: stretch;
-                width: 100%;
-                height: 100%;
-                background-color: #333;
-            }
-            input[type="checkbox"]:checked::after {
-                content: "";
-                align-self: stretch;
-                justify-self: stretch;
-                width: 100%;
-                height: 100%;
-                background-color: #333;
-            }
-
-            label:hover input[type="radio"],
-            label:hover input[type="checkbox"] {
-                border-color: #a03035;
-            }
-
-            .button,
             button {
                 border: none;
                 display: flex;
                 gap: 1ex;
                 align-items: center;
-                background-color: #300d48;
-                color: #fff;
+                background-color: #fffa;
                 width: max-content;
                 padding: 1ex;
                 user-select: none;
             }
-            .button:hover,
-            button:hover {
-                background-color: #600f68;
+
+            input[type="radio"],
+            input[type="checkbox"] {
+                padding: 0;
+                margin: 0;
             }
-            .button:active,
+
+            button:hover,
+            label:has(> input[type="radio"]:not(:checked)):hover,
+            label:has(> input[type="checkbox"]:not(:checked)):hover {
+                color: #a03035;
+            }
             button:active {
-                background-color: #300038;
+                background-color: #e03035;
                 color: #fff;
             }
 
@@ -243,12 +206,6 @@
             }
             select {
                 width: 10em;
-                appearance: none;
-                background-color: #eee;
-                border: 1px solid #aaa;
-                padding: 0.5em 1em;
-                font: inherit;
-                color: #300d48;
             }
             output {
                 display: block;
@@ -338,7 +295,7 @@
             id="vg"
             class="layer"
             viewbox="-100 -100 200 200"
-            preserveAspectRatio="xMidYMid meet"
+            preserveAspectRatio="xMidYMid slice"
         >
             <g id="ctrl" class="dragger">
                 <rect
@@ -428,7 +385,7 @@
                                 <option disabled>Choose</option>
                             </select>
                         </label>
-                        <label class="button">
+                        <label>
                             <input
                                 style="display: none"
                                 type="checkbox"
@@ -1053,12 +1010,26 @@
 
             const swirlPlot = regl({
                 viewport: {
-                    x: () => 0,
-                    y: () => 0,
+                    x: () =>
+                        ((window.innerWidth -
+                            Math.max(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
+                        2,
+                    y: () =>
+                        ((window.innerHeight -
+                            Math.max(window.innerWidth, window.innerHeight)) /
+                            2) *
+                        window.devicePixelRatio *
+                        2,
                     width: () =>
-                        window.innerWidth * window.devicePixelRatio * 2,
+                        Math.max(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
                     height: () =>
-                        window.innerHeight * window.devicePixelRatio * 2,
+                        Math.max(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio *
+                        2,
                 },
                 frag: fragmentShader,
                 vert: vertexShader,
@@ -1083,7 +1054,6 @@
                     escherAngle: regl.prop("escherAngle"),
                     escherScale: regl.prop("escherScale"),
                     plotPolar: regl.prop("plotPolar"),
-                    aspect: () => window.innerWidth / window.innerHeight,
                 },
 
                 count: 3,
