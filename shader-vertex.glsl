@@ -18,7 +18,9 @@ vec2 rot(vec2 subject, float rad, vec2 pivot) {
 }
 
 void main() {
-    vec2 correctedAspectRatio = vec2((position.x - 0.5) * aspect + 0.5, position.y);
+    float shrinkX = max(1.0, aspect);
+    float shrinkY = max(1.0, 1.0 / aspect);
+    vec2 correctedAspectRatio = vec2((position.x - 0.5) * shrinkX, (position.y - 0.5) * shrinkY) + 0.5;
 
     uvCoord = rot(correctedAspectRatio + vec2(offset.x, -offset.y) * 0.5, rotation, vec2(0.5));
     uvCoord += vec2(0.0, (uvCoord.x - 0.5) * mix(sheer, 0.0, plotPolar));

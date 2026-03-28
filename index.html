@@ -1031,11 +1031,15 @@
                     depth: false,
                 },
             });
+            let activeTexture = 0;
 
             let ti = 0;
             for (let t of images) {
                 const o = document.createElement("option");
                 o.appendChild(document.createTextNode(t.replace(".svg", "")));
+                if (ti == activeTexture) {
+                    o.setAttribute("selected", true);
+                }
                 o.setAttribute("value", ti++);
                 window.textureSelect.appendChild(o);
             }
@@ -1049,7 +1053,6 @@
             const textures = textureImages.map((textureImage) => {
                 return regl.texture({ data: textureImage, ...textureOptions });
             });
-            let activeTexture = 0;
 
             const swirlPlot = regl({
                 viewport: {
