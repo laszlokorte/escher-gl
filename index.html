@@ -292,7 +292,13 @@
                 font-size: 2em;
                 background-image: url("house.svg");
                 background-size: cover;
+                background-attachment: fixed;
                 background-position: 50% 50%;
+                pointer-events: none;
+            }
+            .loader.done {
+                transition: opacity 0.5s ease;
+                opacity: 0;
             }
             .loader::after {
                 content: "Loading...";
@@ -301,7 +307,6 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                backdrop-filter: blur(1em);
                 display: grid;
                 justify-content: center;
                 align-content: center;
@@ -1225,7 +1230,8 @@
                     });
                 }
             });
-            window.loader.parentNode.removeChild(window.loader);
+
+            window.loader.classList.add("done");
         </script>
     </body>
 </html>
