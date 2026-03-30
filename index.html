@@ -734,7 +734,7 @@
                 }
             });
 
-            const ctrl = { x: 0, y: 0, z: 0, w: 0 };
+            const ctrl = { x: 0, y: 0, z: 0, w: 1 };
             let rotation = 0;
             let show = "droste";
             let zoom = 0;
@@ -895,16 +895,16 @@
                     ctrl.w = 0;
                     window.lever.setAttribute(
                         "transform",
-                        `rotate(${(-ctrl.w * 180 * 8) / Math.PI})`,
+                        `rotate(${(-ctrl.z * 180) / Math.PI})`,
                     );
                     window.leverHead.setAttribute(
                         "transform",
-                        `translate(${ctrl.z * 100}, 0)`,
+                        `translate(${ctrl.w * 100}, 0)`,
                     );
 
                     window.leverBar.setAttribute(
                         "x2",
-                        Math.max(10, (ctrl.z * 100) / Math.PI / 2 + 70 - 10),
+                        Math.max(10, (ctrl.w * 100) / Math.PI / 2 + 70 - 10),
                     );
 
                     evt.currentTarget.removeAttribute("transform");
@@ -965,27 +965,28 @@
                             svgPos.x * prev.y - svgPos.y * prev.x,
                             svgPos.x * prev.x + svgPos.y * prev.y,
                         );
-                        const rad = Math.hypot(svgPos.x, svgPos.y) - 70;
+                        const rad = Math.hypot(svgPos.x, svgPos.y) / 70;
 
                         prev.x = svgPos.x;
                         prev.y = svgPos.y;
-                        ctrl.w += angle / 8;
-                        ctrl.z = (rad / 100) * Math.PI * 2.0;
+                        if (!evt.ctrlKey) {
+                            ctrl.z += angle;
+                        }
+                        if (!evt.shiftKey) {
+                            ctrl.w = rad;
+                        }
                         window.lever.setAttribute(
                             "transform",
-                            `rotate(${(-ctrl.w * 180 * 8) / Math.PI})`,
+                            `rotate(${(-ctrl.z * 180) / Math.PI})`,
                         );
                         window.leverHead.setAttribute(
                             "transform",
-                            `translate(${(ctrl.z * 100) / Math.PI / 2}, 0)`,
+                            `translate(${(ctrl.w - 1) * 70}, 0)`,
                         );
 
                         window.leverBar.setAttribute(
                             "x2",
-                            Math.max(
-                                10,
-                                (ctrl.z * 100) / Math.PI / 2 + 70 - 10,
-                            ),
+                            Math.max(10, ctrl.w * 70 - 10),
                         );
                     }
                 });
@@ -1316,9 +1317,7 @@
 
                 uniforms: {
                     texture: regl.prop("texture"),
-                    ctrl: regl.prop("ctrl"),
                     offset: regl.prop("offset"),
-                    zoom: regl.prop("zoom"),
                     warp: regl.prop("warp"),
                     sheer: regl.prop("sheer"),
                     rotation: regl.prop("rotation"),
@@ -1384,12 +1383,11 @@
                     }
                     swirlPlot({
                         texture: textures[activeTexture],
-                        ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
-                        zoom: 0.0,
+                        zoom: 0,
                         zoomClamped: 0.0,
                         zoomFactor: 16,
-                        sheer: sheers[activeTexture] ?? 0,
+                        sheer: 0,
                         zoomCenter: [0, 0],
                         rotation: rotation,
                         escherAngle: -Math.PI / 2.0,
@@ -1400,7 +1398,6 @@
                 } else if (show == "escher") {
                     swirlPlot({
                         texture: textures[activeTexture],
-                        ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
@@ -1416,23 +1413,21 @@
                 } else if (show == "freestyle") {
                     swirlPlot({
                         texture: textures[activeTexture],
-                        ctrl: [ctrl.z, ctrl.w],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
                         sheer: sheers[activeTexture] ?? 0,
                         zoomCenter: [0, 0],
-                        rotation: rotation,
-                        escherAngle: 0.0,
-                        escherScale: 1.0,
+                        rotation: rotation + ctrl.z,
+                        escherAngle: ctrl.z,
+                        escherScale: ctrl.w,
                         warp: 1,
                         plotPolar: 0,
                     });
                 } else {
                     swirlPlot({
                         texture: textures[activeTexture],
-                        ctrl: [0, 0],
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,

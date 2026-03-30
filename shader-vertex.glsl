@@ -23,7 +23,7 @@ void main() {
 
     vec2 correctedAspectRatio = vec2((position.x - 0.5) * shrinkX, (position.y - 0.5) * shrinkY) / aspect + 0.5;
 
-    uvCoord = rot(correctedAspectRatio + vec2(offset.x, -offset.y) / aspect * 0.5, rotation, vec2(0.5)) ;
+    uvCoord = rot(correctedAspectRatio + vec2(offset.x, -offset.y) / aspect * 0.5, rotation + sheer, vec2(0.5));
     uvCoord += vec2(0.0, (uvCoord.x - 0.5) * mix(sheer, 0.0, plotPolar));
 
     gl_Position = vec4(1.0 - 2.0 * position, 0, 1);
