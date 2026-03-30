@@ -14,7 +14,7 @@ uniform float plotPolar;
 
 varying vec2 uvCoord;
 
-#define PI 3.141
+#define PI 3.14159265359
 
 vec2 rot(vec2 subject, float rad, vec2 pivot) {
     mat2 rot = mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
@@ -43,7 +43,7 @@ void main() {
     vec2 rotated = rot(polarOrOriginal + zoomInLog, escherAngle + ctrl.x, vec2(0.0));
     vec2 rotScaled = rotated * (escherScale + ctrl.y) - 0.5;
 
-    float rad = mod(2.0 * rotScaled.x, 1.0);
+    float rad = mod(2.0 * rotScaled.x - uvPolar.y, 1.0) + uvPolar.y;
 
     vec2 cartesian = vec2(
             cos(2.0 * PI * rotScaled.y),

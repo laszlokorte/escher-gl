@@ -125,6 +125,15 @@
             .dragger[mode="-warped"] {
                 display: none;
             }
+
+            .lever-bar {
+                pointer-events: none;
+            }
+
+            .lever-head {
+                fill: #000a;
+            }
+
             rect {
                 opacity: 0.2;
                 fill: black;
@@ -387,7 +396,13 @@
                     height="400"
                     class="touch-area fallback"
                 ></rect>
-                <circle r="30" cx="0" cy="0" class="touch-area"></circle>
+                <circle
+                    r="30"
+                    cx="0"
+                    cy="0"
+                    class="touch-area"
+                    id="ctrlPivot"
+                ></circle>
                 <g id="rotor" class="rotor gizmo">
                     <path
                         fill="black"
@@ -411,6 +426,27 @@
                         M  -40 0 h -3
                       "
                     />
+
+                    <g id="lever">
+                        <line
+                            x1="10"
+                            y1="0"
+                            x2="60"
+                            y2="0"
+                            class="lever-bar"
+                            id="leverBar"
+                            stroke="red"
+                        />
+
+                        <circle
+                            cx="70"
+                            cy="0"
+                            r="10"
+                            fill="red"
+                            class="lever-head"
+                            id="leverHead"
+                        />
+                    </g>
                 </g>
                 <g class="pan gizmo">
                     <circle r="10" cx="0" cy="0" class="control"></circle>
@@ -679,7 +715,7 @@
                 }
             });
 
-            const ctrl = { x: 0, y: 0 };
+            const ctrl = { x: 0, y: 0, z: 0, w: 0 };
             let rotation = 0;
             let show = "droste";
             let zoom = 0;
@@ -754,11 +790,13 @@
                     x: 0,
                     y: 0,
                 };
+                const pivot = window.ctrlPivot;
                 window.ctrl.addEventListener("pointerdown", (evt) => {
+                    evt.stopPropagation();
                     evt.preventDefault();
                     evt.currentTarget.setPointerCapture(evt.pointerId);
 
-                    const bb = evt.currentTarget.getBoundingClientRect();
+                    const bb = pivot.getBoundingClientRect();
                     offset.x = evt.clientX - bb.left - bb.width / 2;
                     offset.y = evt.clientY - bb.top - bb.height / 2;
 
@@ -766,6 +804,7 @@
                 });
 
                 window.ctrl.addEventListener("pointermove", (evt) => {
+                    evt.stopPropagation();
                     evt.preventDefault();
                     if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                         const owner = evt.currentTarget.ownerSVGElement;
@@ -798,15 +837,86 @@
                 });
 
                 window.ctrl.addEventListener("gotpointercapture", (evt) => {
+                    evt.stopPropagation();
                     evt.preventDefault();
                     evt.currentTarget.classList.add("active");
                 });
 
                 window.ctrl.addEventListener("pointercancel", (evt) => {
+                    evt.stopPropagation();
                     evt.currentTarget.classList.remove("active");
                 });
 
                 window.ctrl.addEventListener("lostpointercapture", (evt) => {
+                    evt.stopPropagation();
+                    evt.currentTarget.classList.remove("active");
+                });
+            }
+
+            {
+                let offset = {
+                    x: 0,
+                    y: 0,
+                };
+                const pivot = window.leverHead;
+                window.lever.addEventListener("pointerdown", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    evt.currentTarget.setPointerCapture(evt.pointerId);
+
+                    const bb = pivot.getBoundingClientRect();
+                    offset.x = evt.clientX - bb.left - bb.width / 2;
+                    offset.y = evt.clientY - bb.top - bb.height / 2;
+
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.lever.addEventListener("pointermove", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
+                        const owner = evt.currentTarget.ownerSVGElement;
+                        const pt = owner.createSVGPoint();
+                        pt.x = Math.max(
+                            0.1 * window.innerWidth,
+                            Math.min(window.innerWidth, evt.clientX - offset.x),
+                        );
+                        pt.y = Math.max(
+                            0,
+                            Math.min(
+                                window.innerHeight,
+                                evt.clientY - offset.y,
+                            ),
+                        );
+
+                        const svgPos = pt.matrixTransform(
+                            owner.getScreenCTM().inverse(),
+                        );
+                        svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
+                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+
+                        ctrl.w = (svgPos.x - 70) / 100;
+                        ctrl.z = svgPos.y / 100;
+                        evt.currentTarget.setAttribute(
+                            "transform",
+                            `translate(${svgPos.x - 70}, ${svgPos.y})`,
+                        );
+                    }
+                });
+
+                window.lever.addEventListener("gotpointercapture", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                    evt.currentTarget.classList.add("active");
+                });
+
+                window.lever.addEventListener("pointercancel", (evt) => {
+                    evt.stopPropagation();
+                    evt.currentTarget.classList.remove("active");
+                });
+
+                window.lever.addEventListener("lostpointercapture", (evt) => {
+                    evt.stopPropagation();
                     evt.currentTarget.classList.remove("active");
                 });
             }
@@ -815,7 +925,6 @@
                     x: 0,
                     y: 0,
                 };
-
                 window.scroller.ownerSVGElement.addEventListener(
                     "wheel",
                     (evt) => {
@@ -901,6 +1010,8 @@
                     x: 0,
                     y: 0,
                 };
+
+                const pivot = window.ctrlPivot;
                 window.rotor.addEventListener("wheel", (evt) => {
                     evt.stopPropagation();
                     evt.preventDefault();
@@ -934,7 +1045,7 @@
                     pt.y = evt.clientY;
 
                     const ptC = owner.createSVGPoint();
-                    const bb = evt.currentTarget.getBoundingClientRect();
+                    const bb = pivot.getBoundingClientRect();
                     ptC.x = bb.left + bb.width / 2;
                     ptC.y = bb.top + bb.height / 2;
 
@@ -958,7 +1069,7 @@
                         pt.y = evt.clientY;
 
                         const ptC = owner.createSVGPoint();
-                        const bb = evt.currentTarget.getBoundingClientRect();
+                        const bb = pivot.getBoundingClientRect();
                         ptC.x = bb.left + bb.width / 2;
                         ptC.y = bb.top + bb.height / 2;
 
@@ -1215,8 +1326,8 @@
                 } else if (show == "freestyle") {
                     swirlPlot({
                         texture: textures[activeTexture],
-                        ctrl: [ctrl.x, ctrl.y],
-                        offset: [0, 0],
+                        ctrl: [ctrl.z, ctrl.w],
+                        offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
                         zoomFactor: 16,
