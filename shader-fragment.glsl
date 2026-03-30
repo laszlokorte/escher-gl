@@ -31,14 +31,14 @@ vec2 rescale(vec2 subject, float factor) {
 }
 
 void main() {
-    vec2 uvCentered = (uvCoord - 0.5) * 2.0;
+    vec2 uvCentered = (uvCoord - 0.5);
 
     vec2 uvPolar = vec2(
             log(length(uvCentered)) / log(zoomFactor),
             atan(uvCentered.y, uvCentered.x) / PI
         ) / 2.0;
 
-    vec2 polarOrOriginal = mix(uvPolar, uvCentered, plotPolar);
+    vec2 polarOrOriginal = mix(uvPolar, vec2(uvCentered.y * PI / 4.0 * 2.0 , uvCentered.x * PI / 4.0), plotPolar);
     vec2 zoomInLog = rot(vec2(1.0, 0.0), -(escherAngle + ctrl.x), vec2(0.0, 0.0)) * 0.1 * zoom;
     vec2 rotated = rot(polarOrOriginal + zoomInLog, escherAngle + ctrl.x, vec2(0.0));
     vec2 rotScaled = rotated * (escherScale + ctrl.y) - 0.5;
