@@ -43,7 +43,8 @@
             .layer.top {
                 align-self: start;
                 height: auto;
-                padding: 2em;
+                width: auto;
+                margin: 2em;
                 touch-action: none;
             }
 
@@ -69,6 +70,10 @@
 
             body:has(#gizmos:not(:checked)) .gizmo,
             body:has(.active.scroller) .dragger,
+            body:has(.active.lever) .scroller,
+            body:has(.active.lever) .pan,
+            body:has(.active.lever) .rotor-ring,
+            body:has(.active.rotor) .lever,
             body:has(.active.rotor) .scroller,
             body:has(.active.dragger) .scroller {
                 display: none;
@@ -77,7 +82,6 @@
                 display: initial;
             }
             body:has(.active) {
-                cursor: none;
             }
 
             .rotor.active + .pan {
@@ -132,6 +136,22 @@
 
             .lever-head {
                 fill: #000a;
+            }
+            .lever-bar {
+                opacity: 0.2;
+                stroke: #fff;
+            }
+            .lever {
+                display: none;
+            }
+            [mode="freestyle"] .lever {
+                display: initial;
+            }
+
+            .lever.active .lever-bar {
+                opacity: 0.8;
+                stroke-linecap: round;
+                stroke: aquamarine;
             }
 
             rect {
@@ -405,6 +425,7 @@
                 ></circle>
                 <g id="rotor" class="rotor gizmo">
                     <path
+                        class="rotor-ring"
                         fill="black"
                         opacity="0.2"
                         fill-rule="evenodd"
@@ -427,7 +448,7 @@
                       "
                     />
 
-                    <g id="lever">
+                    <g id="lever" class="lever">
                         <line
                             x1="10"
                             y1="0"
@@ -435,14 +456,12 @@
                             y2="0"
                             class="lever-bar"
                             id="leverBar"
-                            stroke="red"
                         />
 
                         <circle
                             cx="70"
                             cy="0"
                             r="10"
-                            fill="red"
                             class="lever-head"
                             id="leverHead"
                         />
@@ -471,12 +490,12 @@
         <svg
             id="vg"
             class="layer"
-            viewbox="-100 -59 20 100"
-            style="justify-self: start; width: 10em; height: 100%"
+            viewbox="-100 -50 20 100"
+            style="justify-self: start; width: 8em; height: 100%"
             preserveAspectRatio="xMinYMid meet"
         >
             <g id="scroller" class="scroller gizmo">
-                <rect x="-100.1" y="-100" width="20" height="200"></rect>
+                <rect x="-100" y="-100" width="20" height="200"></rect>
                 <polygon points="-95 20 -85 20 -90 25" fill="white" />
                 <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
                 <text
@@ -858,15 +877,64 @@
                     x: 0,
                     y: 0,
                 };
-                const pivot = window.leverHead;
+                let prev = {
+                    x: 0,
+                    y: 0,
+                };
+
+                const pivot = window.ctrlPivot;
+                window.lever.addEventListener("wheel", (evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                });
+
+                window.lever.addEventListener("dblclick", (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    ctrl.z = 0;
+                    ctrl.w = 0;
+                    window.lever.setAttribute(
+                        "transform",
+                        `rotate(${(-ctrl.w * 180 * 8) / Math.PI})`,
+                    );
+                    window.leverHead.setAttribute(
+                        "transform",
+                        `translate(${ctrl.z * 100}, 0)`,
+                    );
+
+                    window.leverBar.setAttribute(
+                        "x2",
+                        Math.max(10, (ctrl.z * 100) / Math.PI / 2 + 70 - 10),
+                    );
+
+                    evt.currentTarget.removeAttribute("transform");
+                });
+
                 window.lever.addEventListener("pointerdown", (evt) => {
                     evt.stopPropagation();
                     evt.preventDefault();
                     evt.currentTarget.setPointerCapture(evt.pointerId);
 
+                    const owner = evt.currentTarget.ownerSVGElement;
+                    const ctm = owner.getScreenCTM().inverse();
+
+                    const bbo = window.leverHead.getBoundingClientRect();
+                    offset.x = evt.clientX - bbo.left - bbo.width / 2;
+                    offset.y = evt.clientY - bbo.top - bbo.height / 2;
+
+                    const pt = owner.createSVGPoint();
+                    pt.x = evt.clientX - offset.x;
+                    pt.y = evt.clientY - offset.y;
+
+                    const ptC = owner.createSVGPoint();
                     const bb = pivot.getBoundingClientRect();
-                    offset.x = evt.clientX - bb.left - bb.width / 2;
-                    offset.y = evt.clientY - bb.top - bb.height / 2;
+                    ptC.x = bb.left + bb.width / 2;
+                    ptC.y = bb.top + bb.height / 2;
+
+                    const svgPos = pt.matrixTransform(ctm);
+                    const svgPosCenter = ptC.matrixTransform(ctm);
+                    prev.x = svgPos.x - svgPosCenter.x;
+                    prev.y = svgPos.y - svgPosCenter.y;
 
                     evt.currentTarget.classList.add("active");
                 });
@@ -876,30 +944,48 @@
                     evt.preventDefault();
                     if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                         const owner = evt.currentTarget.ownerSVGElement;
+                        const ctm = owner.getScreenCTM().inverse();
+
                         const pt = owner.createSVGPoint();
-                        pt.x = Math.max(
-                            0.1 * window.innerWidth,
-                            Math.min(window.innerWidth, evt.clientX - offset.x),
-                        );
-                        pt.y = Math.max(
-                            0,
-                            Math.min(
-                                window.innerHeight,
-                                evt.clientY - offset.y,
-                            ),
-                        );
+                        pt.x = evt.clientX - offset.x;
+                        pt.y = evt.clientY - offset.y;
 
-                        const svgPos = pt.matrixTransform(
-                            owner.getScreenCTM().inverse(),
-                        );
-                        svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
-                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+                        const ptC = owner.createSVGPoint();
+                        const bb = pivot.getBoundingClientRect();
+                        ptC.x = bb.left + bb.width / 2;
+                        ptC.y = bb.top + bb.height / 2;
 
-                        ctrl.w = (svgPos.x - 70) / 100;
-                        ctrl.z = svgPos.y / 100;
-                        evt.currentTarget.setAttribute(
+                        const svgPos = pt.matrixTransform(ctm);
+                        const svgPosCenter = ptC.matrixTransform(ctm);
+
+                        svgPos.x -= svgPosCenter.x;
+                        svgPos.y -= svgPosCenter.y;
+
+                        const angle = Math.atan2(
+                            svgPos.x * prev.y - svgPos.y * prev.x,
+                            svgPos.x * prev.x + svgPos.y * prev.y,
+                        );
+                        const rad = Math.hypot(svgPos.x, svgPos.y) - 70;
+
+                        prev.x = svgPos.x;
+                        prev.y = svgPos.y;
+                        ctrl.w += angle / 8;
+                        ctrl.z = (rad / 100) * Math.PI * 2.0;
+                        window.lever.setAttribute(
                             "transform",
-                            `translate(${svgPos.x - 70}, ${svgPos.y})`,
+                            `rotate(${(-ctrl.w * 180 * 8) / Math.PI})`,
+                        );
+                        window.leverHead.setAttribute(
+                            "transform",
+                            `translate(${(ctrl.z * 100) / Math.PI / 2}, 0)`,
+                        );
+
+                        window.leverBar.setAttribute(
+                            "x2",
+                            Math.max(
+                                10,
+                                (ctrl.z * 100) / Math.PI / 2 + 70 - 10,
+                            ),
                         );
                     }
                 });
@@ -1148,13 +1234,15 @@
 
             const canvas = window.cnv;
 
-            const minSize = Math.min(window.innerWidth, window.innerHeight);
+            const minSize =
+                Math.min(window.innerWidth, window.innerHeight) *
+                window.devicePixelRatio;
             const expSize = Math.pow(
                 2,
                 Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
             );
 
-            const images = ["house.svg", "grid.svg"];
+            const images = ["house.svg", "grid.svg", "clock.svg"];
             const sheers = [0.1, 0.0];
 
             const shaderLoader = await Promise.all(
@@ -1252,7 +1340,9 @@
                 canvas.width = window.innerWidth * window.devicePixelRatio;
                 canvas.height = window.innerHeight * window.devicePixelRatio;
 
-                const minSize = Math.min(window.innerWidth, window.innerHeight);
+                const minSize =
+                    Math.min(window.innerWidth, window.innerHeight) *
+                    window.devicePixelRatio;
                 const expSize = Math.pow(
                     2,
                     Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
