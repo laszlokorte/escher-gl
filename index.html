@@ -4,10 +4,17 @@
         <meta charset="utf-8" />
         <title>M.C. Escher Print Gallery Shader</title>
         <link rel="icon" href="favicon.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+            name="apple-mobile-web-app-status-bar-style"
+            content="black-translucent"
+        />
         <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+            content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
+        <link rel="manifest" href="manifest.json" />
+        <link rel="apple-touch-icon" href="favicon.svg" />
         <style>
             * {
                 box-sizing: border-box;
@@ -15,12 +22,28 @@
             :root,
             html,
             body {
-                height: 100%;
+                min-height: 100%;
                 background-color: #594732;
                 font-family: monospace;
             }
 
             body {
+                margin: 0;
+                padding: 0;
+            }
+            .app {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                right: 0;
+
+                /* fallback */
+                min-height: 100vh;
+
+                /* modern iOS */
+                min-height: 100dvh;
+
                 display: grid;
                 margin: 0;
                 padding: 0;
@@ -288,14 +311,14 @@
                 display: contents;
             }
             svg {
+                height: 100%;
+                width: 100%;
                 z-index: 10;
-                position: fixed;
-                top: 0;
             }
             canvas {
+                height: 100%;
+                width: 100%;
                 z-index: 5;
-                position: fixed;
-                top: 0;
             }
 
             .top {
@@ -398,38 +421,39 @@
         </style>
     </head>
     <body>
-        <label style="display: contents" for="movie">
-            <canvas id="cnv" class="layer" tabindex="-1"></canvas>
-        </label>
-        <svg
-            id="vg"
-            class="layer"
-            viewbox="-100 -100 200 200"
-            preserveAspectRatio="xMidYMid meet"
-        >
-            <g id="ctrl" class="dragger">
-                <rect
-                    fill="green"
-                    x="-200"
-                    y="-200"
-                    width="400"
-                    height="400"
-                    class="touch-area fallback"
-                ></rect>
-                <circle
-                    r="30"
-                    cx="0"
-                    cy="0"
-                    class="touch-area"
-                    id="ctrlPivot"
-                ></circle>
-                <g id="rotor" class="rotor gizmo">
-                    <path
-                        class="rotor-ring"
-                        fill="black"
-                        opacity="0.2"
-                        fill-rule="evenodd"
-                        d="
+        <div class="app">
+            <label style="display: contents" for="movie">
+                <canvas id="cnv" class="layer" tabindex="-1"></canvas>
+            </label>
+            <svg
+                id="vg"
+                class="layer"
+                viewbox="-100 -100 200 200"
+                preserveAspectRatio="xMidYMid meet"
+            >
+                <g id="ctrl" class="dragger">
+                    <rect
+                        fill="green"
+                        x="-200"
+                        y="-200"
+                        width="400"
+                        height="400"
+                        class="touch-area fallback"
+                    ></rect>
+                    <circle
+                        r="30"
+                        cx="0"
+                        cy="0"
+                        class="touch-area"
+                        id="ctrlPivot"
+                    ></circle>
+                    <g id="rotor" class="rotor gizmo">
+                        <path
+                            class="rotor-ring"
+                            fill="black"
+                            opacity="0.2"
+                            fill-rule="evenodd"
+                            d="
                         M 0,0
                         m -50,0
                         a 50,50 0 1,0 100,0
@@ -446,505 +470,503 @@
                         M  40 0 h 3
                         M  -40 0 h -3
                       "
-                    />
-
-                    <g id="lever" class="lever">
-                        <line
-                            x1="10"
-                            y1="0"
-                            x2="60"
-                            y2="0"
-                            class="lever-bar"
-                            id="leverBar"
                         />
 
-                        <circle
-                            cx="70"
-                            cy="0"
-                            r="10"
-                            class="lever-head"
-                            id="leverHead"
-                        />
+                        <g id="lever" class="lever">
+                            <line
+                                x1="10"
+                                y1="0"
+                                x2="60"
+                                y2="0"
+                                class="lever-bar"
+                                id="leverBar"
+                            />
+
+                            <circle
+                                cx="70"
+                                cy="0"
+                                r="10"
+                                class="lever-head"
+                                id="leverHead"
+                            />
+                        </g>
+                    </g>
+                    <g class="pan gizmo">
+                        <circle r="10" cx="0" cy="0" class="control"></circle>
+
+                        <polygon points="-2 -4 2 -4 0 -6" fill="white" />
+                        <polygon points="-2 4 2 4 0 6" fill="white" />
+                        <polygon points="4 -2 4 2 6 0" fill="white" />
+                        <polygon points="-4 -2 -4 2 -6 0" fill="white" />
+                        <text
+                            class="help"
+                            x="0"
+                            y="1"
+                            text-anchor="middle"
+                            font-size="3"
+                            fill="white"
+                        >
+                            Drag
+                        </text>
                     </g>
                 </g>
-                <g class="pan gizmo">
-                    <circle r="10" cx="0" cy="0" class="control"></circle>
-
-                    <polygon points="-2 -4 2 -4 0 -6" fill="white" />
-                    <polygon points="-2 4 2 4 0 6" fill="white" />
-                    <polygon points="4 -2 4 2 6 0" fill="white" />
-                    <polygon points="-4 -2 -4 2 -6 0" fill="white" />
+            </svg>
+            <svg
+                id="vg"
+                class="layer"
+                viewbox="-100 -50 20 100"
+                style="justify-self: start; width: 8em; height: 100%"
+                preserveAspectRatio="xMinYMid meet"
+            >
+                <g id="scroller" class="scroller gizmo">
+                    <rect x="-100" y="-100" width="20" height="200"></rect>
+                    <polygon points="-95 20 -85 20 -90 25" fill="white" />
+                    <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
                     <text
-                        class="help"
-                        x="0"
-                        y="1"
+                        x="-90"
+                        y="0"
                         text-anchor="middle"
                         font-size="3"
                         fill="white"
                     >
-                        Drag
+                        Swipe
                     </text>
                 </g>
-            </g>
-        </svg>
-        <svg
-            id="vg"
-            class="layer"
-            viewbox="-100 -50 20 100"
-            style="justify-self: start; width: 8em; height: 100%"
-            preserveAspectRatio="xMinYMid meet"
-        >
-            <g id="scroller" class="scroller gizmo">
-                <rect x="-100" y="-100" width="20" height="200"></rect>
-                <polygon points="-95 20 -85 20 -90 25" fill="white" />
-                <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
-                <text
-                    x="-90"
-                    y="0"
-                    text-anchor="middle"
-                    font-size="3"
-                    fill="white"
-                >
-                    Swipe
-                </text>
-            </g>
-        </svg>
-        <div class="layer top">
-            <fieldset>
-                <legend>options</legend>
-                <div class="ctrls">
-                    <form id="showoptions" class="radiolist">
-                        <div class="radiolist" id="optionlist"></div>
+            </svg>
+            <div class="layer top">
+                <fieldset>
+                    <legend>options</legend>
+                    <div class="ctrls">
+                        <form id="showoptions" class="radiolist">
+                            <div class="radiolist" id="optionlist"></div>
+                            <label>
+                                Image
+                                <select name="image" id="textureSelect">
+                                    <option disabled>Choose</option>
+                                </select>
+                            </label>
+                            <label class="button">
+                                <input
+                                    style="display: none"
+                                    type="checkbox"
+                                    id="movie"
+                                    name="movie"
+                                    value="yes"
+                                />
+                                Autoplay
+                            </label>
+                        </form>
+                        <button id="fullscreen">Fullscreen</button>
                         <label>
-                            Image
-                            <select name="image" id="textureSelect">
-                                <option disabled>Choose</option>
-                            </select>
-                        </label>
-                        <label class="button">
                             <input
-                                style="display: none"
                                 type="checkbox"
-                                id="movie"
-                                name="movie"
+                                id="gizmos"
+                                name="gizmos"
+                                checked
                                 value="yes"
                             />
-                            Autoplay
+                            Gizmos
                         </label>
-                    </form>
-                    <button id="fullscreen">Fullscreen</button>
-                    <label>
-                        <input
-                            type="checkbox"
-                            id="gizmos"
-                            name="gizmos"
-                            checked
-                            value="yes"
-                        />
-                        Gizmos
-                    </label>
-                    <a
-                        href="https://www.youtube.com/watch?v=16qMC_y_MY0"
-                        target="_blank"
-                        >Demo Video</a
-                    >
-                    <div id="errorBox"></div>
-                </div>
-                <details>
-                    <summary>Show Shader / About</summary>
-                    <p>
-                        See
                         <a
-                            href="https://www.youtube.com/watch?v=ldxFjLJ3rVY"
+                            href="https://www.youtube.com/watch?v=16qMC_y_MY0"
                             target="_blank"
-                            >this fantastic 3Blue1Brown video</a
+                            >Demo Video</a
                         >
-                        for an in depth explanation.
-                    </p>
-                    <p>
-                        <b>To summarize:</b> The original idea is popularized by
-                        <a
-                            target="_blank"
-                            href="https://en.wikipedia.org/wiki/M._C._Escher"
-                            >M. C. Escher</a
-                        >
-                        in their artworks.
-                    </p>
-                    <p>
-                        The
-                        <a
-                            target="_blank"
-                            href="https://en.wikipedia.org/wiki/Droste_effect"
-                            >droste effect</a
-                        >
-                        is the idea of embedding a smaller version of an image
-                        into itself leading to an (theoretically) infinitely
-                        repeating recursive depth.
-                    </p>
-                    <p>
-                        Escher took this idea even further by breaking the
-                        boundary between two recursive images and morphing them
-                        together. This leads to the visual impression that there
-                        are no separate instances of a repeated image but just a
-                        single image spiraling inwards.
-                    </p>
-                    <p>
-                        This effect can also be recognized as
-                        <a
-                            target="_blank"
-                            href="https://en.wikipedia.org/wiki/Strange_loop"
-                            >strange loop</a
-                        >
-                        as done by
-                        <a
-                            href="https://en.wikipedia.org/wiki/Douglas_Hofstadter"
-                            >Douglas Hofstadter</a
-                        >
-                        in his book
-                        <a
-                            href="https://en.wikipedia.org/wiki/G%C3%B6del,_Escher,_Bach"
-                            >Gödel, Escher, Bach</a
-                        >.
-                    </p>
-                    <p>
-                        Computationally, to turn any classic image into a droste
-                        image a smaller version of the classic image has just to
-                        be renderered somewhere ontop of the original image.
-                        Depending on the scaling factor between nested images
-                        this has to be repeated until the threshold of the
-                        required display resolution is met, so that nobody can
-                        recognize that there are in fact not infinite smaller
-                        and smaller images.
-                    </p>
-                    <p>
-                        Generating an Escher spiral to connect all the recursive
-                        images smoothly is slightly more sophisticated. We need
-                        to transform the (x,y)-coordinates of the image into
-                        polar coordinates of radius and angle measured from the
-                        center point in the image at which the recursion takes
-                        place. This makes both coordinates periodic: The angle
-                        is obviously periodic and the radius is periodic in
-                        droste images because when moving inwards or outwards
-                        the image will repeat after some period
-                    </p>
-                    <p>
-                        So just changing the images coordinate system from
-                        cartesian to polar coordinates enables us to see and to
-                        express the periodicity of the image much more clearly.
-                    </p>
-                    <p>
-                        The next trick is to transform (rotate and scale) the
-                        image in its polar coordinate space. The key insight
-                        required for this is that all concetric circles from the
-                        original image are straight horzontall lines inside the
-                        polar space (because they have all the same radius but
-                        different angles in the original image).
-                    </p>
-                    <p>
-                        So in the polar space all the smaller and smaller
-                        instances of the droste image are unwrapped into equally
-                        sized rows below to each other. To break their
-                        separation we just have to break the horzontal row
-                        structure seperating them. This can easily be done by
-                        just rotating everything in polar space so that a single
-                        image instance runs diagonally across multiple (actually
-                        all infinite) rows.
-                    </p>
-                    <p>
-                        After the rotation both a single horzontal line and a
-                        single vertical line in polar space run through all
-                        image instances. When now transforming back into
-                        cartesian coordinates this leads to all the instaces of
-                        the images having both all radii and and angles in
-                        common, resulting in a spiralling effect. The only
-                        tricky part is to do the polar space rotation in such a
-                        way that the period of the spiral turning lines up with
-                        the image being scaled.
-                    </p>
-                    <p>
-                        Overall this trick of first transforming into polar
-                        coordinates, then doing a simple rotation and finally
-                        transforming back can be compared to the application of
-                        the fourier transform in signal processing. The fourier
-                        transform can be used to apply linear filters to a
-                        signal. Instead of computing the convolution of the
-                        filter kernel with the input signal in the time domain
-                        it can be done as a simple element-wise multiplication
-                        in the frequency. Instead of doing a complicated
-                        calculation directly we first transform into another
-                        coordinate system, do a simple calculation there and
-                        them transform back. For the Escher effect for
-                        calculating a crazy spiral in cartesian space, we just
-                        move to polar coordinates, to a simple rotation and them
-                        move back.
-                    </p>
-                    <p>
-                        Below you can read the WebGL vertex and and fragment
-                        shaders for doing the the transformation.
-                    </p>
-                    <p>
-                        Some other people have already built some really cool
-                        demos of the same effect. For example this
-                        <a href="https://www.cindyjs.org/gallery/main/Droste/"
-                            >recreation Eschers Print Gallery</a
-                        >
-                        and
-                        <a href="https://www.cindyjs.org/gallery/main/Jugglers/"
-                            >the same effect to applied to playing video.</a
-                        >
-                    </p>
-                    <h3>Vertex Shader</h3>
-                    <pre id="vertexCode"></pre>
-                    <h3>Framgnet Shader</h3>
-                    <pre id="fragmentCode"></pre>
-                </details>
-            </fieldset>
-        </div>
-        <div class="layer loader" id="loader">Loading</div>
-        <script src="regl.js"></script>
+                        <div id="errorBox"></div>
+                    </div>
+                    <details>
+                        <summary>Show Shader / About</summary>
+                        <p>
+                            See
+                            <a
+                                href="https://www.youtube.com/watch?v=ldxFjLJ3rVY"
+                                target="_blank"
+                                >this fantastic 3Blue1Brown video</a
+                            >
+                            for an in depth explanation.
+                        </p>
+                        <p>
+                            <b>To summarize:</b> The original idea is
+                            popularized by
+                            <a
+                                target="_blank"
+                                href="https://en.wikipedia.org/wiki/M._C._Escher"
+                                >M. C. Escher</a
+                            >
+                            in their artworks.
+                        </p>
+                        <p>
+                            The
+                            <a
+                                target="_blank"
+                                href="https://en.wikipedia.org/wiki/Droste_effect"
+                                >droste effect</a
+                            >
+                            is the idea of embedding a smaller version of an
+                            image into itself leading to an (theoretically)
+                            infinitely repeating recursive depth.
+                        </p>
+                        <p>
+                            Escher took this idea even further by breaking the
+                            boundary between two recursive images and morphing
+                            them together. This leads to the visual impression
+                            that there are no separate instances of a repeated
+                            image but just a single image spiraling inwards.
+                        </p>
+                        <p>
+                            This effect can also be recognized as
+                            <a
+                                target="_blank"
+                                href="https://en.wikipedia.org/wiki/Strange_loop"
+                                >strange loop</a
+                            >
+                            as done by
+                            <a
+                                href="https://en.wikipedia.org/wiki/Douglas_Hofstadter"
+                                >Douglas Hofstadter</a
+                            >
+                            in his book
+                            <a
+                                href="https://en.wikipedia.org/wiki/G%C3%B6del,_Escher,_Bach"
+                                >Gödel, Escher, Bach</a
+                            >.
+                        </p>
+                        <p>
+                            Computationally, to turn any classic image into a
+                            droste image a smaller version of the classic image
+                            has just to be renderered somewhere ontop of the
+                            original image. Depending on the scaling factor
+                            between nested images this has to be repeated until
+                            the threshold of the required display resolution is
+                            met, so that nobody can recognize that there are in
+                            fact not infinite smaller and smaller images.
+                        </p>
+                        <p>
+                            Generating an Escher spiral to connect all the
+                            recursive images smoothly is slightly more
+                            sophisticated. We need to transform the
+                            (x,y)-coordinates of the image into polar
+                            coordinates of radius and angle measured from the
+                            center point in the image at which the recursion
+                            takes place. This makes both coordinates periodic:
+                            The angle is obviously periodic and the radius is
+                            periodic in droste images because when moving
+                            inwards or outwards the image will repeat after some
+                            period
+                        </p>
+                        <p>
+                            So just changing the images coordinate system from
+                            cartesian to polar coordinates enables us to see and
+                            to express the periodicity of the image much more
+                            clearly.
+                        </p>
+                        <p>
+                            The next trick is to transform (rotate and scale)
+                            the image in its polar coordinate space. The key
+                            insight required for this is that all concetric
+                            circles from the original image are straight
+                            horzontall lines inside the polar space (because
+                            they have all the same radius but different angles
+                            in the original image).
+                        </p>
+                        <p>
+                            So in the polar space all the smaller and smaller
+                            instances of the droste image are unwrapped into
+                            equally sized rows below to each other. To break
+                            their separation we just have to break the horzontal
+                            row structure seperating them. This can easily be
+                            done by just rotating everything in polar space so
+                            that a single image instance runs diagonally across
+                            multiple (actually all infinite) rows.
+                        </p>
+                        <p>
+                            After the rotation both a single horzontal line and
+                            a single vertical line in polar space run through
+                            all image instances. When now transforming back into
+                            cartesian coordinates this leads to all the instaces
+                            of the images having both all radii and and angles
+                            in common, resulting in a spiralling effect. The
+                            only tricky part is to do the polar space rotation
+                            in such a way that the period of the spiral turning
+                            lines up with the image being scaled.
+                        </p>
+                        <p>
+                            Overall this trick of first transforming into polar
+                            coordinates, then doing a simple rotation and
+                            finally transforming back can be compared to the
+                            application of the fourier transform in signal
+                            processing. The fourier transform can be used to
+                            apply linear filters to a signal. Instead of
+                            computing the convolution of the filter kernel with
+                            the input signal in the time domain it can be done
+                            as a simple element-wise multiplication in the
+                            frequency. Instead of doing a complicated
+                            calculation directly we first transform into another
+                            coordinate system, do a simple calculation there and
+                            them transform back. For the Escher effect for
+                            calculating a crazy spiral in cartesian space, we
+                            just move to polar coordinates, to a simple rotation
+                            and them move back.
+                        </p>
+                        <p>
+                            Below you can read the WebGL vertex and and fragment
+                            shaders for doing the the transformation.
+                        </p>
+                        <p>
+                            Some other people have already built some really
+                            cool demos of the same effect. For example this
+                            <a
+                                href="https://www.cindyjs.org/gallery/main/Droste/"
+                                >recreation Eschers Print Gallery</a
+                            >
+                            and
+                            <a
+                                href="https://www.cindyjs.org/gallery/main/Jugglers/"
+                                >the same effect to applied to playing video.</a
+                            >
+                        </p>
+                        <h3>Vertex Shader</h3>
+                        <pre id="vertexCode"></pre>
+                        <h3>Framgnet Shader</h3>
+                        <pre id="fragmentCode"></pre>
+                    </details>
+                </fieldset>
+            </div>
+            <div class="layer loader" id="loader">Loading</div>
+            <script src="regl.js"></script>
 
-        <script type="module">
-            function loadImage(url, w, h) {
-                return new Promise((res, fail) => {
-                    const texture = document.createElement("img");
-                    texture.width = w;
-                    texture.height = h;
-                    texture.addEventListener("load", () => {
-                        res(texture);
+            <script type="module">
+                function loadImage(url, w, h) {
+                    return new Promise((res, fail) => {
+                        const texture = document.createElement("img");
+                        texture.width = w;
+                        texture.height = h;
+                        texture.addEventListener("load", () => {
+                            res(texture);
+                        });
+                        texture.addEventListener("error", (error) => {
+                            fail(error);
+                        });
+                        texture.src = url;
                     });
-                    texture.addEventListener("error", (error) => {
-                        fail(error);
-                    });
-                    texture.src = url;
-                });
-            }
-
-            window.addEventListener("error", (evt) => {
-                while (window.errorBox.firstChild) {
-                    window.errorBox.removeChild(window.errorBox.firstChild);
                 }
-                window.errorBox.appendChild(
-                    document.createTextNode(evt.message),
-                );
 
-                if (window.loader) {
-                    window.loader.appendChild(
+                window.addEventListener("error", (evt) => {
+                    while (window.errorBox.firstChild) {
+                        window.errorBox.removeChild(window.errorBox.firstChild);
+                    }
+                    window.errorBox.appendChild(
                         document.createTextNode(evt.message),
                     );
-                }
-            });
 
-            const ctrl = { x: 0, y: 0, z: 0, w: 1 };
-            let rotation = 0;
-            let show = "droste";
-            let zoom = 0;
-            let zoomCyclic = 0;
-            let zoomClamped = 0;
-
-            window.addEventListener("keydown", (evt) => {
-                if (
-                    (evt.key == "Escape" && window.movie.checked) ||
-                    evt.key == " "
-                ) {
-                    window.movie.checked = !window.movie.checked;
-                    window.movie.dispatchEvent(
-                        new Event("input", { bubbles: true }),
-                    );
-                }
-            });
-
-            function toggleFullScreen(invoker) {
-                const fullscreenElement =
-                    document.fullscreenElement ||
-                    document.webkitFullscreenElement;
-
-                if (!fullscreenElement) {
-                    if (invoker.requestFullscreen) {
-                        invoker.requestFullscreen();
-                    } else if (invoker.webkitRequestFullscreen) {
-                        invoker.webkitRequestFullscreen();
+                    if (window.loader) {
+                        window.loader.appendChild(
+                            document.createTextNode(evt.message),
+                        );
                     }
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    }
-                }
-            }
-
-            window.fullscreen.addEventListener("click", (evt) => {
-                toggleFullScreen(document.body);
-            });
-
-            window.addEventListener("fullscreenchange", (event) => {
-                if (window.movie.checked) {
-                    window.movie.checked = false;
-                    window.movie.dispatchEvent(
-                        new Event("input", { bubbles: true }),
-                    );
-                }
-            });
-
-            window.movie.checked = false;
-
-            window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
-                evt.preventDefault();
-                evt.stopPropagation();
-                const delta = evt.deltaY / 1400;
-                if (evt.ctrlKey || evt.metaKey) {
-                    rotation += delta;
-                    window.rotor.setAttribute(
-                        "transform",
-                        `rotate(${(-rotation * 180) / Math.PI})`,
-                    );
-                } else {
-                    zoom += delta;
-                    zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                    zoomClamped = Math.max(0, Math.min(2, zoomClamped + delta));
-                }
-            });
-            {
-                let offset = {
-                    x: 0,
-                    y: 0,
-                };
-                const pivot = window.ctrlPivot;
-                window.ctrl.addEventListener("pointerdown", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    evt.currentTarget.setPointerCapture(evt.pointerId);
-
-                    const bb = pivot.getBoundingClientRect();
-                    offset.x = evt.clientX - bb.left - bb.width / 2;
-                    offset.y = evt.clientY - bb.top - bb.height / 2;
-
-                    evt.currentTarget.classList.add("active");
                 });
 
-                window.ctrl.addEventListener("pointermove", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
-                        const owner = evt.currentTarget.ownerSVGElement;
-                        const pt = owner.createSVGPoint();
-                        pt.x = Math.max(
-                            0.1 * window.innerWidth,
-                            Math.min(window.innerWidth, evt.clientX - offset.x),
+                const ctrl = { x: 0, y: 0, z: 0, w: 1 };
+                let rotation = 0;
+                let show = "droste";
+                let zoom = 0;
+                let zoomCyclic = 0;
+                let zoomClamped = 0;
+
+                window.addEventListener("keydown", (evt) => {
+                    if (
+                        (evt.key == "Escape" && window.movie.checked) ||
+                        evt.key == " "
+                    ) {
+                        window.movie.checked = !window.movie.checked;
+                        window.movie.dispatchEvent(
+                            new Event("input", { bubbles: true }),
                         );
-                        pt.y = Math.max(
+                    }
+                });
+
+                function toggleFullScreen(invoker) {
+                    const fullscreenElement =
+                        document.fullscreenElement ||
+                        document.webkitFullscreenElement;
+
+                    if (!fullscreenElement) {
+                        if (invoker.requestFullscreen) {
+                            invoker.requestFullscreen();
+                        } else if (invoker.webkitRequestFullscreen) {
+                            invoker.webkitRequestFullscreen();
+                        }
+                    } else {
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen();
+                        } else if (document.webkitExitFullscreen) {
+                            document.webkitExitFullscreen();
+                        }
+                    }
+                }
+
+                window.fullscreen.addEventListener("click", (evt) => {
+                    toggleFullScreen(document.body);
+                });
+
+                window.addEventListener("fullscreenchange", (event) => {
+                    if (window.movie.checked) {
+                        window.movie.checked = false;
+                        window.movie.dispatchEvent(
+                            new Event("input", { bubbles: true }),
+                        );
+                    }
+                });
+
+                window.movie.checked = false;
+
+                window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    const delta = evt.deltaY / 1400;
+                    if (evt.ctrlKey || evt.metaKey) {
+                        rotation += delta;
+                        window.rotor.setAttribute(
+                            "transform",
+                            `rotate(${(-rotation * 180) / Math.PI})`,
+                        );
+                    } else {
+                        zoom += delta;
+                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                        zoomClamped = Math.max(
                             0,
-                            Math.min(
-                                window.innerHeight,
-                                evt.clientY - offset.y,
+                            Math.min(2, zoomClamped + delta),
+                        );
+                    }
+                });
+                {
+                    let offset = {
+                        x: 0,
+                        y: 0,
+                    };
+                    const pivot = window.ctrlPivot;
+                    window.ctrl.addEventListener("pointerdown", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        evt.currentTarget.setPointerCapture(evt.pointerId);
+
+                        const bb = pivot.getBoundingClientRect();
+                        offset.x = evt.clientX - bb.left - bb.width / 2;
+                        offset.y = evt.clientY - bb.top - bb.height / 2;
+
+                        evt.currentTarget.classList.add("active");
+                    });
+
+                    window.ctrl.addEventListener("pointermove", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        if (
+                            evt.currentTarget.hasPointerCapture(evt.pointerId)
+                        ) {
+                            const owner = evt.currentTarget.ownerSVGElement;
+                            const pt = owner.createSVGPoint();
+                            pt.x = Math.max(
+                                0.1 * window.innerWidth,
+                                Math.min(
+                                    window.innerWidth,
+                                    evt.clientX - offset.x,
+                                ),
+                            );
+                            pt.y = Math.max(
+                                0,
+                                Math.min(
+                                    window.innerHeight,
+                                    evt.clientY - offset.y,
+                                ),
+                            );
+
+                            const svgPos = pt.matrixTransform(
+                                owner.getScreenCTM().inverse(),
+                            );
+                            svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
+                            svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+
+                            ctrl.x = svgPos.x / 100;
+                            ctrl.y = svgPos.y / 100;
+                            evt.currentTarget.setAttribute(
+                                "transform",
+                                `translate(${svgPos.x}, ${svgPos.y})`,
+                            );
+                        }
+                    });
+
+                    window.ctrl.addEventListener("gotpointercapture", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        evt.currentTarget.classList.add("active");
+                    });
+
+                    window.ctrl.addEventListener("pointercancel", (evt) => {
+                        evt.stopPropagation();
+                        evt.currentTarget.classList.remove("active");
+                    });
+
+                    window.ctrl.addEventListener(
+                        "lostpointercapture",
+                        (evt) => {
+                            evt.stopPropagation();
+                            evt.currentTarget.classList.remove("active");
+                        },
+                    );
+                }
+
+                {
+                    let offset = {
+                        x: 0,
+                        y: 0,
+                    };
+                    let prev = {
+                        x: 0,
+                        y: 0,
+                    };
+
+                    const pivot = window.ctrlPivot;
+                    window.lever.addEventListener("wheel", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                    });
+
+                    window.lever.addEventListener("dblclick", (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        ctrl.z = 0;
+                        ctrl.w = 0;
+                        window.lever.setAttribute(
+                            "transform",
+                            `rotate(${(-ctrl.z * 180) / Math.PI})`,
+                        );
+                        window.leverHead.setAttribute(
+                            "transform",
+                            `translate(${ctrl.w * 100}, 0)`,
+                        );
+
+                        window.leverBar.setAttribute(
+                            "x2",
+                            Math.max(
+                                10,
+                                (ctrl.w * 100) / Math.PI / 2 + 70 - 10,
                             ),
                         );
 
-                        const svgPos = pt.matrixTransform(
-                            owner.getScreenCTM().inverse(),
-                        );
-                        svgPos.x = Math.max(-100, Math.min(svgPos.x, 100));
-                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
+                        evt.currentTarget.removeAttribute("transform");
+                    });
 
-                        ctrl.x = svgPos.x / 100;
-                        ctrl.y = svgPos.y / 100;
-                        evt.currentTarget.setAttribute(
-                            "transform",
-                            `translate(${svgPos.x}, ${svgPos.y})`,
-                        );
-                    }
-                });
+                    window.lever.addEventListener("pointerdown", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        evt.currentTarget.setPointerCapture(evt.pointerId);
 
-                window.ctrl.addEventListener("gotpointercapture", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    evt.currentTarget.classList.add("active");
-                });
-
-                window.ctrl.addEventListener("pointercancel", (evt) => {
-                    evt.stopPropagation();
-                    evt.currentTarget.classList.remove("active");
-                });
-
-                window.ctrl.addEventListener("lostpointercapture", (evt) => {
-                    evt.stopPropagation();
-                    evt.currentTarget.classList.remove("active");
-                });
-            }
-
-            {
-                let offset = {
-                    x: 0,
-                    y: 0,
-                };
-                let prev = {
-                    x: 0,
-                    y: 0,
-                };
-
-                const pivot = window.ctrlPivot;
-                window.lever.addEventListener("wheel", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                });
-
-                window.lever.addEventListener("dblclick", (evt) => {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    ctrl.z = 0;
-                    ctrl.w = 0;
-                    window.lever.setAttribute(
-                        "transform",
-                        `rotate(${(-ctrl.z * 180) / Math.PI})`,
-                    );
-                    window.leverHead.setAttribute(
-                        "transform",
-                        `translate(${ctrl.w * 100}, 0)`,
-                    );
-
-                    window.leverBar.setAttribute(
-                        "x2",
-                        Math.max(10, (ctrl.w * 100) / Math.PI / 2 + 70 - 10),
-                    );
-
-                    evt.currentTarget.removeAttribute("transform");
-                });
-
-                window.lever.addEventListener("pointerdown", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    evt.currentTarget.setPointerCapture(evt.pointerId);
-
-                    const owner = evt.currentTarget.ownerSVGElement;
-                    const ctm = owner.getScreenCTM().inverse();
-
-                    const bbo = window.leverHead.getBoundingClientRect();
-                    offset.x = evt.clientX - bbo.left - bbo.width / 2;
-                    offset.y = evt.clientY - bbo.top - bbo.height / 2;
-
-                    const pt = owner.createSVGPoint();
-                    pt.x = evt.clientX - offset.x;
-                    pt.y = evt.clientY - offset.y;
-
-                    const ptC = owner.createSVGPoint();
-                    const bb = pivot.getBoundingClientRect();
-                    ptC.x = bb.left + bb.width / 2;
-                    ptC.y = bb.top + bb.height / 2;
-
-                    const svgPos = pt.matrixTransform(ctm);
-                    const svgPosCenter = ptC.matrixTransform(ctm);
-                    prev.x = svgPos.x - svgPosCenter.x;
-                    prev.y = svgPos.y - svgPosCenter.y;
-
-                    evt.currentTarget.classList.add("active");
-                });
-
-                window.lever.addEventListener("pointermove", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                         const owner = evt.currentTarget.ownerSVGElement;
                         const ctm = owner.getScreenCTM().inverse();
+
+                        const bbo = window.leverHead.getBoundingClientRect();
+                        offset.x = evt.clientX - bbo.left - bbo.width / 2;
+                        offset.y = evt.clientY - bbo.top - bbo.height / 2;
 
                         const pt = owner.createSVGPoint();
                         pt.x = evt.clientX - offset.x;
@@ -957,103 +979,118 @@
 
                         const svgPos = pt.matrixTransform(ctm);
                         const svgPosCenter = ptC.matrixTransform(ctm);
+                        prev.x = svgPos.x - svgPosCenter.x;
+                        prev.y = svgPos.y - svgPosCenter.y;
 
-                        svgPos.x -= svgPosCenter.x;
-                        svgPos.y -= svgPosCenter.y;
+                        evt.currentTarget.classList.add("active");
+                    });
 
-                        const angle = Math.atan2(
-                            svgPos.x * prev.y - svgPos.y * prev.x,
-                            svgPos.x * prev.x + svgPos.y * prev.y,
-                        );
-                        const rad = Math.hypot(svgPos.x, svgPos.y) / 70;
-
-                        prev.x = svgPos.x;
-                        prev.y = svgPos.y;
-                        if (!evt.ctrlKey) {
-                            ctrl.z += angle;
-                        }
-                        if (!evt.shiftKey) {
-                            ctrl.w = rad;
-                        }
-                        window.lever.setAttribute(
-                            "transform",
-                            `rotate(${(-ctrl.z * 180) / Math.PI})`,
-                        );
-                        window.leverHead.setAttribute(
-                            "transform",
-                            `translate(${(ctrl.w - 1) * 70}, 0)`,
-                        );
-
-                        window.leverBar.setAttribute(
-                            "x2",
-                            Math.max(10, ctrl.w * 70 - 10),
-                        );
-                    }
-                });
-
-                window.lever.addEventListener("gotpointercapture", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    evt.currentTarget.classList.add("active");
-                });
-
-                window.lever.addEventListener("pointercancel", (evt) => {
-                    evt.stopPropagation();
-                    evt.currentTarget.classList.remove("active");
-                });
-
-                window.lever.addEventListener("lostpointercapture", (evt) => {
-                    evt.stopPropagation();
-                    evt.currentTarget.classList.remove("active");
-                });
-            }
-            {
-                let offset = {
-                    x: 0,
-                    y: 0,
-                };
-                window.scroller.ownerSVGElement.addEventListener(
-                    "wheel",
-                    (evt) => {
-                        evt.preventDefault();
+                    window.lever.addEventListener("pointermove", (evt) => {
                         evt.stopPropagation();
-                        const delta = evt.deltaY / 1400;
+                        evt.preventDefault();
+                        if (
+                            evt.currentTarget.hasPointerCapture(evt.pointerId)
+                        ) {
+                            const owner = evt.currentTarget.ownerSVGElement;
+                            const ctm = owner.getScreenCTM().inverse();
 
-                        zoom += delta;
-                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                        zoomClamped = Math.max(
-                            0,
-                            Math.min(2, zoomClamped + delta),
-                        );
-                    },
-                );
-                let prev = 0;
-                window.scroller.addEventListener("pointerdown", (evt) => {
-                    evt.preventDefault();
-                    evt.currentTarget.setPointerCapture(evt.pointerId);
+                            const pt = owner.createSVGPoint();
+                            pt.x = evt.clientX - offset.x;
+                            pt.y = evt.clientY - offset.y;
 
-                    const owner = evt.currentTarget.ownerSVGElement;
-                    const bb = evt.currentTarget.getBoundingClientRect();
-                    offset.x = evt.clientX - bb.left - bb.width / 2;
-                    offset.y = evt.clientY - bb.top - bb.height / 2;
+                            const ptC = owner.createSVGPoint();
+                            const bb = pivot.getBoundingClientRect();
+                            ptC.x = bb.left + bb.width / 2;
+                            ptC.y = bb.top + bb.height / 2;
 
-                    const pt = owner.createSVGPoint();
-                    pt.x = evt.clientX;
-                    pt.y = evt.clientY;
+                            const svgPos = pt.matrixTransform(ctm);
+                            const svgPosCenter = ptC.matrixTransform(ctm);
 
-                    const svgPos = pt.matrixTransform(
-                        owner.getScreenCTM().inverse(),
+                            svgPos.x -= svgPosCenter.x;
+                            svgPos.y -= svgPosCenter.y;
+
+                            const angle = Math.atan2(
+                                svgPos.x * prev.y - svgPos.y * prev.x,
+                                svgPos.x * prev.x + svgPos.y * prev.y,
+                            );
+                            const rad = Math.hypot(svgPos.x, svgPos.y) / 70;
+
+                            prev.x = svgPos.x;
+                            prev.y = svgPos.y;
+                            if (!evt.ctrlKey) {
+                                ctrl.z += angle;
+                            }
+                            if (!evt.shiftKey) {
+                                ctrl.w = rad;
+                            }
+                            window.lever.setAttribute(
+                                "transform",
+                                `rotate(${(-ctrl.z * 180) / Math.PI})`,
+                            );
+                            window.leverHead.setAttribute(
+                                "transform",
+                                `translate(${(ctrl.w - 1) * 70}, 0)`,
+                            );
+
+                            window.leverBar.setAttribute(
+                                "x2",
+                                Math.max(10, ctrl.w * 70 - 10),
+                            );
+                        }
+                    });
+
+                    window.lever.addEventListener(
+                        "gotpointercapture",
+                        (evt) => {
+                            evt.stopPropagation();
+                            evt.preventDefault();
+                            evt.currentTarget.classList.add("active");
+                        },
                     );
-                    svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
-                    prev = svgPos.y;
 
-                    evt.currentTarget.classList.add("active");
-                });
+                    window.lever.addEventListener("pointercancel", (evt) => {
+                        evt.stopPropagation();
+                        evt.currentTarget.classList.remove("active");
+                    });
 
-                window.scroller.addEventListener("pointermove", (evt) => {
-                    evt.preventDefault();
-                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
+                    window.lever.addEventListener(
+                        "lostpointercapture",
+                        (evt) => {
+                            evt.stopPropagation();
+                            evt.currentTarget.classList.remove("active");
+                        },
+                    );
+                }
+                {
+                    let offset = {
+                        x: 0,
+                        y: 0,
+                    };
+                    window.scroller.ownerSVGElement.addEventListener(
+                        "wheel",
+                        (evt) => {
+                            evt.preventDefault();
+                            evt.stopPropagation();
+                            const delta = evt.deltaY / 1400;
+
+                            zoom += delta;
+                            zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                            zoomClamped = Math.max(
+                                0,
+                                Math.min(2, zoomClamped + delta),
+                            );
+                        },
+                    );
+                    let prev = 0;
+                    window.scroller.addEventListener("pointerdown", (evt) => {
+                        evt.preventDefault();
+                        evt.currentTarget.setPointerCapture(evt.pointerId);
+
                         const owner = evt.currentTarget.ownerSVGElement;
+                        const bb = evt.currentTarget.getBoundingClientRect();
+                        offset.x = evt.clientX - bb.left - bb.width / 2;
+                        offset.y = evt.clientY - bb.top - bb.height / 2;
+
                         const pt = owner.createSVGPoint();
                         pt.x = evt.clientX;
                         pt.y = evt.clientY;
@@ -1061,93 +1098,91 @@
                         const svgPos = pt.matrixTransform(
                             owner.getScreenCTM().inverse(),
                         );
-
-                        const delta = (svgPos.y - prev) / 32;
+                        svgPos.y = Math.max(-100, Math.min(svgPos.y, 100));
                         prev = svgPos.y;
 
-                        zoom += delta;
-                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                        zoomClamped = Math.max(
-                            0,
-                            Math.min(2, zoomClamped + delta),
-                        );
-                    }
-                });
+                        evt.currentTarget.classList.add("active");
+                    });
 
-                window.scroller.addEventListener("gotpointercapture", (evt) => {
-                    evt.preventDefault();
-                    evt.currentTarget.classList.add("active");
-                });
+                    window.scroller.addEventListener("pointermove", (evt) => {
+                        evt.preventDefault();
+                        if (
+                            evt.currentTarget.hasPointerCapture(evt.pointerId)
+                        ) {
+                            const owner = evt.currentTarget.ownerSVGElement;
+                            const pt = owner.createSVGPoint();
+                            pt.x = evt.clientX;
+                            pt.y = evt.clientY;
 
-                window.scroller.addEventListener(
-                    "lostpointercapture",
-                    (evt) => {
-                        evt.currentTarget.classList.remove("active");
-                    },
-                );
+                            const svgPos = pt.matrixTransform(
+                                owner.getScreenCTM().inverse(),
+                            );
 
-                window.scroller.addEventListener("dblclick", (evt) => {
-                    zoom = 0;
-                    zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
-                    zoomClamped = Math.max(0, Math.min(2, zoom));
-                });
-            }
-            {
-                let prev = {
-                    x: 0,
-                    y: 0,
-                };
+                            const delta = (svgPos.y - prev) / 32;
+                            prev = svgPos.y;
 
-                const pivot = window.ctrlPivot;
-                window.rotor.addEventListener("wheel", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    const delta = evt.deltaY / 1400;
+                            zoom += delta;
+                            zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                            zoomClamped = Math.max(
+                                0,
+                                Math.min(2, zoomClamped + delta),
+                            );
+                        }
+                    });
 
-                    rotation += delta;
-                    window.rotor.setAttribute(
-                        "transform",
-                        `rotate(${(-rotation * 180) / Math.PI})`,
+                    window.scroller.addEventListener(
+                        "gotpointercapture",
+                        (evt) => {
+                            evt.preventDefault();
+                            evt.currentTarget.classList.add("active");
+                        },
                     );
-                });
 
-                window.rotor.addEventListener("dblclick", (evt) => {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    rotation = 0;
+                    window.scroller.addEventListener(
+                        "lostpointercapture",
+                        (evt) => {
+                            evt.currentTarget.classList.remove("active");
+                        },
+                    );
 
-                    evt.currentTarget.removeAttribute("transform");
-                });
+                    window.scroller.addEventListener("dblclick", (evt) => {
+                        zoom = 0;
+                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                        zoomClamped = Math.max(0, Math.min(2, zoom));
+                    });
+                }
+                {
+                    let prev = {
+                        x: 0,
+                        y: 0,
+                    };
 
-                window.rotor.addEventListener("pointerdown", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    evt.currentTarget.setPointerCapture(evt.pointerId);
+                    const pivot = window.ctrlPivot;
+                    window.rotor.addEventListener("wheel", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        const delta = evt.deltaY / 1400;
 
-                    const owner = evt.currentTarget.ownerSVGElement;
-                    const ctm = owner.getScreenCTM().inverse();
+                        rotation += delta;
+                        window.rotor.setAttribute(
+                            "transform",
+                            `rotate(${(-rotation * 180) / Math.PI})`,
+                        );
+                    });
 
-                    const pt = owner.createSVGPoint();
-                    pt.x = evt.clientX;
-                    pt.y = evt.clientY;
+                    window.rotor.addEventListener("dblclick", (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        rotation = 0;
 
-                    const ptC = owner.createSVGPoint();
-                    const bb = pivot.getBoundingClientRect();
-                    ptC.x = bb.left + bb.width / 2;
-                    ptC.y = bb.top + bb.height / 2;
+                        evt.currentTarget.removeAttribute("transform");
+                    });
 
-                    const svgPos = pt.matrixTransform(ctm);
-                    const svgPosCenter = ptC.matrixTransform(ctm);
-                    prev.x = svgPos.x - svgPosCenter.x;
-                    prev.y = svgPos.y - svgPosCenter.y;
+                    window.rotor.addEventListener("pointerdown", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        evt.currentTarget.setPointerCapture(evt.pointerId);
 
-                    evt.currentTarget.classList.add("active");
-                });
-
-                window.rotor.addEventListener("pointermove", (evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
-                    if (evt.currentTarget.hasPointerCapture(evt.pointerId)) {
                         const owner = evt.currentTarget.ownerSVGElement;
                         const ctm = owner.getScreenCTM().inverse();
 
@@ -1162,291 +1197,334 @@
 
                         const svgPos = pt.matrixTransform(ctm);
                         const svgPosCenter = ptC.matrixTransform(ctm);
+                        prev.x = svgPos.x - svgPosCenter.x;
+                        prev.y = svgPos.y - svgPosCenter.y;
 
-                        svgPos.x -= svgPosCenter.x;
-                        svgPos.y -= svgPosCenter.y;
+                        evt.currentTarget.classList.add("active");
+                    });
 
-                        const angle = Math.atan2(
-                            svgPos.x * prev.y - svgPos.y * prev.x,
-                            svgPos.x * prev.x + svgPos.y * prev.y,
-                        );
+                    window.rotor.addEventListener("pointermove", (evt) => {
+                        evt.stopPropagation();
+                        evt.preventDefault();
+                        if (
+                            evt.currentTarget.hasPointerCapture(evt.pointerId)
+                        ) {
+                            const owner = evt.currentTarget.ownerSVGElement;
+                            const ctm = owner.getScreenCTM().inverse();
 
-                        prev.x = svgPos.x;
-                        prev.y = svgPos.y;
-                        rotation += angle;
-                        evt.currentTarget.setAttribute(
-                            "transform",
-                            `rotate(${(-rotation * 180) / Math.PI})`,
-                        );
+                            const pt = owner.createSVGPoint();
+                            pt.x = evt.clientX;
+                            pt.y = evt.clientY;
+
+                            const ptC = owner.createSVGPoint();
+                            const bb = pivot.getBoundingClientRect();
+                            ptC.x = bb.left + bb.width / 2;
+                            ptC.y = bb.top + bb.height / 2;
+
+                            const svgPos = pt.matrixTransform(ctm);
+                            const svgPosCenter = ptC.matrixTransform(ctm);
+
+                            svgPos.x -= svgPosCenter.x;
+                            svgPos.y -= svgPosCenter.y;
+
+                            const angle = Math.atan2(
+                                svgPos.x * prev.y - svgPos.y * prev.x,
+                                svgPos.x * prev.x + svgPos.y * prev.y,
+                            );
+
+                            prev.x = svgPos.x;
+                            prev.y = svgPos.y;
+                            rotation += angle;
+                            evt.currentTarget.setAttribute(
+                                "transform",
+                                `rotate(${(-rotation * 180) / Math.PI})`,
+                            );
+                        }
+                    });
+
+                    window.rotor.addEventListener(
+                        "gotpointercapture",
+                        (evt) => {
+                            evt.stopPropagation();
+                            evt.preventDefault();
+                            evt.currentTarget.classList.add("active");
+                        },
+                    );
+
+                    window.rotor.addEventListener("pointercancel", (evt) => {
+                        evt.stopPropagation();
+                        evt.currentTarget.classList.remove("active");
+                    });
+
+                    window.rotor.addEventListener(
+                        "lostpointercapture",
+                        (evt) => {
+                            evt.stopPropagation();
+                            evt.currentTarget.classList.remove("active");
+                        },
+                    );
+                }
+
+                const visuals = ["droste", "log", "escher", "freestyle"];
+
+                for (const v of visuals) {
+                    const l = document.createElement("label");
+                    const i = document.createElement("input");
+                    i.setAttribute("type", "radio");
+                    i.setAttribute("name", "show");
+                    i.setAttribute("value", v);
+                    i.checked = show == v;
+                    l.appendChild(i);
+                    l.appendChild(document.createTextNode(v));
+                    window.optionlist.appendChild(l);
+                }
+                window.showoptions.addEventListener("input", (evt) => {
+                    evt.preventDefault();
+                    const formValues = Object.fromEntries(
+                        new FormData(evt.currentTarget),
+                    );
+                    show = formValues.show;
+                    if (formValues.image != activeTexture) {
+                        activeTexture = formValues.image;
+                        texture = texture({
+                            data: textureImages[activeTexture],
+                            ...textureOptions,
+                        });
+                    }
+                    window.ctrl.setAttribute("mode", show);
+                    document.body.setAttribute(
+                        "movie",
+                        formValues.movie ?? "no",
+                    );
+                    if (formValues.movie) {
+                        window.cnv.parentNode.focus();
                     }
                 });
 
-                window.rotor.addEventListener("gotpointercapture", (evt) => {
-                    evt.stopPropagation();
+                window.ctrl.addEventListener("dblclick", (evt) => {
                     evt.preventDefault();
-                    evt.currentTarget.classList.add("active");
-                });
-
-                window.rotor.addEventListener("pointercancel", (evt) => {
                     evt.stopPropagation();
-                    evt.currentTarget.classList.remove("active");
+                    ctrl.x = 0;
+                    ctrl.y = 0;
+                    evt.currentTarget.removeAttribute("transform");
                 });
 
-                window.rotor.addEventListener("lostpointercapture", (evt) => {
-                    evt.stopPropagation();
-                    evt.currentTarget.classList.remove("active");
-                });
-            }
-
-            const visuals = ["droste", "log", "escher", "freestyle"];
-
-            for (const v of visuals) {
-                const l = document.createElement("label");
-                const i = document.createElement("input");
-                i.setAttribute("type", "radio");
-                i.setAttribute("name", "show");
-                i.setAttribute("value", v);
-                i.checked = show == v;
-                l.appendChild(i);
-                l.appendChild(document.createTextNode(v));
-                window.optionlist.appendChild(l);
-            }
-            window.showoptions.addEventListener("input", (evt) => {
-                evt.preventDefault();
-                const formValues = Object.fromEntries(
-                    new FormData(evt.currentTarget),
-                );
-                show = formValues.show;
-                activeTexture = formValues.image;
-                texture = texture({
-                    data: textureImages[activeTexture],
-                    ...textureOptions,
-                });
-                window.ctrl.setAttribute("mode", show);
-                document.body.setAttribute("movie", formValues.movie ?? "no");
-                if (formValues.movie) {
-                    window.cnv.parentNode.focus();
-                }
-            });
-
-            window.ctrl.addEventListener("dblclick", (evt) => {
-                evt.preventDefault();
-                evt.stopPropagation();
-                ctrl.x = 0;
-                ctrl.y = 0;
-                evt.currentTarget.removeAttribute("transform");
-            });
-
-            const canvas = window.cnv;
-
-            const minSize =
-                Math.min(window.innerWidth, window.innerHeight) *
-                window.devicePixelRatio;
-            const expSize = Math.pow(
-                2,
-                Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
-            );
-
-            const images = ["house.svg", "grid.svg", "clock.svg"];
-            const sheers = [0.1, 0.0];
-
-            const shaderLoader = await Promise.all(
-                Object.entries({
-                    vertex: "./shader-vertex.glsl",
-                    fragment: "./shader-fragment.glsl",
-                }).map(([k, v]) =>
-                    fetch(v).then((r) => r.text().then((t) => [k, t])),
-                ),
-            ).then((s) => Object.fromEntries(s));
-
-            const textureImagesLoader = await Promise.all(
-                images.map((i) => loadImage(i, expSize, expSize)),
-            );
-
-            const [textureImages, shaders] = await Promise.all([
-                textureImagesLoader,
-                shaderLoader,
-            ]);
-
-            window.vertexCode.appendChild(
-                document.createTextNode(shaders.vertex),
-            );
-            window.fragmentCode.appendChild(
-                document.createTextNode(shaders.fragment),
-            );
-            const regl = createREGL({
-                canvas: cnv,
-                pixelRatio: window.devicePixelRatio,
-                attributes: {
-                    antialias: true,
-                    depth: false,
-                },
-            });
-            let activeTexture = 0;
-
-            let ti = 0;
-            for (let t of images) {
-                const o = document.createElement("option");
-                o.appendChild(document.createTextNode(t.replace(".svg", "")));
-                if (ti == activeTexture) {
-                    o.setAttribute("selected", true);
-                }
-                o.setAttribute("value", ti++);
-                window.textureSelect.appendChild(o);
-            }
-            const textureOptions = {
-                mag: "linear",
-                flipY: true,
-                min: "linear",
-                wrap: ["repeat", "repeat"],
-            };
-
-            let texture = regl.texture({
-                data: textureImages[activeTexture],
-                ...textureOptions,
-            });
-
-            const swirlPlot = regl({
-                viewport: {
-                    x: () => 0,
-                    y: () => 0,
-                    width: () => window.innerWidth * window.devicePixelRatio,
-                    height: () => window.innerHeight * window.devicePixelRatio,
-                },
-                frag: shaders.fragment,
-                vert: shaders.vertex,
-
-                attributes: {
-                    position: [-2, 0, 0, -2, 2, 2],
-                },
-
-                uniforms: {
-                    texture: regl.prop("texture"),
-                    offset: regl.prop("offset"),
-                    warp: regl.prop("warp"),
-                    sheer: regl.prop("sheer"),
-                    rotation: regl.prop("rotation"),
-                    zoom: regl.prop("zoom"),
-                    zoomCyclic: regl.prop("zoomCyclic"),
-                    zoomClamped: regl.prop("zoomClamped"),
-                    zoomFactor: regl.prop("zoomFactor"),
-                    zoomCenter: regl.prop("zoomCenter"),
-                    escherAngle: regl.prop("escherAngle"),
-                    escherScale: regl.prop("escherScale"),
-                    plotPolar: regl.prop("plotPolar"),
-                    aspect: () => window.innerWidth / window.innerHeight,
-                },
-
-                count: 3,
-            });
-
-            function rsz() {
-                canvas.width = window.innerWidth * window.devicePixelRatio;
-                canvas.height = window.innerHeight * window.devicePixelRatio;
+                const canvas = window.cnv;
 
                 const minSize =
                     Math.min(window.innerWidth, window.innerHeight) *
                     window.devicePixelRatio;
                 const expSize = Math.pow(
                     2,
-                    Math.ceil(Math.log(minSize) / Math.log(2)) + 1,
+                    Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
                 );
 
-                if (textureImages[activeTexture].width != expSize) {
-                    for (let t = 0; t < textureImages.length; t++) {
-                        textureImages.width = expSize;
-                        textureImages.height = expSize;
+                const images = ["house.svg", "grid.svg", "clock.svg"];
+                const sheers = [0.1, 0.0];
+
+                const shaderLoader = await Promise.all(
+                    Object.entries({
+                        vertex: "./shader-vertex.glsl",
+                        fragment: "./shader-fragment.glsl",
+                    }).map(([k, v]) =>
+                        fetch(v).then((r) => r.text().then((t) => [k, t])),
+                    ),
+                ).then((s) => Object.fromEntries(s));
+
+                const textureImagesLoader = await Promise.all(
+                    images.map((i) => loadImage(i, expSize, expSize)),
+                );
+
+                const [textureImages, shaders] = await Promise.all([
+                    textureImagesLoader,
+                    shaderLoader,
+                ]);
+
+                window.vertexCode.appendChild(
+                    document.createTextNode(shaders.vertex),
+                );
+                window.fragmentCode.appendChild(
+                    document.createTextNode(shaders.fragment),
+                );
+                const regl = createREGL({
+                    canvas: cnv,
+                    pixelRatio: window.devicePixelRatio,
+                    attributes: {
+                        antialias: true,
+                        depth: false,
+                    },
+                });
+                let activeTexture = 0;
+
+                let ti = 0;
+                for (let t of images) {
+                    const o = document.createElement("option");
+                    o.appendChild(
+                        document.createTextNode(t.replace(".svg", "")),
+                    );
+                    if (ti == activeTexture) {
+                        o.setAttribute("selected", true);
                     }
-                    texture = texture({
-                        data: textureImages[activeTexture],
-                        ...textureOptions,
-                    });
+                    o.setAttribute("value", ti++);
+                    window.textureSelect.appendChild(o);
                 }
-            }
-            rsz();
+                const textureOptions = {
+                    mag: "linear",
+                    flipY: true,
+                    min: "linear",
+                    wrap: ["repeat", "repeat"],
+                };
 
-            window.addEventListener("resize", rsz);
-
-            regl.frame(({ time }) => {
-                if (window.movie.checked) {
-                    zoom -= 0.01;
-                }
-                regl.clear({
-                    color: [0, 0, 0, 0],
-                    depth: 1,
+                let texture = regl.texture({
+                    data: textureImages[activeTexture],
+                    ...textureOptions,
                 });
 
-                if (!texture) {
-                    return;
-                }
+                const swirlPlot = regl({
+                    viewport: {
+                        x: () => 0,
+                        y: () => 0,
+                        width: () =>
+                            window.innerWidth * window.devicePixelRatio,
+                        height: () =>
+                            window.innerHeight * window.devicePixelRatio,
+                    },
+                    frag: shaders.fragment,
+                    vert: shaders.vertex,
 
-                if (show === "log") {
-                    if (window.movie.checked) {
-                        ctrl.y = ((ctrl.y + 0.01 + 1) % 2) - 1;
+                    attributes: {
+                        position: [-2, 0, 0, -2, 2, 2],
+                    },
+
+                    uniforms: {
+                        texture: regl.prop("texture"),
+                        offset: regl.prop("offset"),
+                        warp: regl.prop("warp"),
+                        sheer: regl.prop("sheer"),
+                        rotation: regl.prop("rotation"),
+                        zoom: regl.prop("zoom"),
+                        zoomCyclic: regl.prop("zoomCyclic"),
+                        zoomClamped: regl.prop("zoomClamped"),
+                        zoomFactor: regl.prop("zoomFactor"),
+                        zoomCenter: regl.prop("zoomCenter"),
+                        escherAngle: regl.prop("escherAngle"),
+                        escherScale: regl.prop("escherScale"),
+                        plotPolar: regl.prop("plotPolar"),
+                        aspect: () => window.innerWidth / window.innerHeight,
+                    },
+
+                    count: 3,
+                });
+
+                function rsz() {
+                    canvas.width = window.innerWidth * window.devicePixelRatio;
+                    canvas.height =
+                        window.innerHeight * window.devicePixelRatio;
+
+                    const minSize =
+                        Math.min(window.innerWidth, window.innerHeight) *
+                        window.devicePixelRatio;
+                    const expSize = Math.pow(
+                        2,
+                        Math.ceil(Math.log(minSize) / Math.log(2)) + 1,
+                    );
+
+                    if (textureImages[activeTexture].width != expSize) {
+                        for (let t = 0; t < textureImages.length; t++) {
+                            textureImages.width = expSize;
+                            textureImages.height = expSize;
+                        }
+                        texture = texture({
+                            data: textureImages[activeTexture],
+                            ...textureOptions,
+                        });
                     }
-                    swirlPlot({
-                        texture,
-                        offset: [ctrl.x, ctrl.y],
-                        zoom: 0,
-                        zoomClamped: 0.0,
-                        zoomFactor: 16,
-                        sheer: 0,
-                        zoomCenter: [0, 0],
-                        rotation: rotation,
-                        escherAngle: -Math.PI / 2.0,
-                        escherScale: Math.pow(2, zoomClamped),
-                        warp: 1,
-                        plotPolar: 1,
-                    });
-                } else if (show == "escher") {
-                    swirlPlot({
-                        texture,
-                        offset: [ctrl.x, ctrl.y],
-                        zoom,
-                        zoomClamped,
-                        zoomFactor: 16,
-                        sheer: sheers[activeTexture] ?? 0,
-                        zoomCenter: [0, 0],
-                        rotation: rotation,
-                        escherAngle: 0.463776890039444,
-                        escherScale: 1.117768667936325,
-                        warp: 1,
-                        plotPolar: 0,
-                    });
-                } else if (show == "freestyle") {
-                    swirlPlot({
-                        texture,
-                        offset: [ctrl.x, ctrl.y],
-                        zoom,
-                        zoomClamped,
-                        zoomFactor: 16,
-                        sheer: sheers[activeTexture] ?? 0,
-                        zoomCenter: [0, 0],
-                        rotation: rotation + ctrl.z,
-                        escherAngle: ctrl.z,
-                        escherScale: ctrl.w,
-                        warp: 1,
-                        plotPolar: 0,
-                    });
-                } else {
-                    swirlPlot({
-                        texture,
-                        offset: [ctrl.x, ctrl.y],
-                        zoom,
-                        zoomClamped,
-                        zoomFactor: 16,
-                        sheer: sheers[activeTexture] ?? 0,
-                        zoomCenter: [0, 0],
-                        rotation: rotation,
-                        escherAngle: 0.0,
-                        warp: 1,
-                        escherScale: 1,
-                        plotPolar: 0,
-                    });
                 }
-            });
+                rsz();
 
-            window.loader.classList.add("done");
-        </script>
+                window.addEventListener("resize", rsz);
+
+                regl.frame(({ time }) => {
+                    if (window.movie.checked) {
+                        zoom -= 0.01;
+                    }
+                    regl.clear({
+                        color: [0, 0, 0, 0],
+                        depth: 1,
+                    });
+
+                    if (!texture) {
+                        return;
+                    }
+
+                    if (show === "log") {
+                        if (window.movie.checked) {
+                            ctrl.y = ((ctrl.y + 0.01 + 1) % 2) - 1;
+                        }
+                        swirlPlot({
+                            texture,
+                            offset: [ctrl.x, ctrl.y],
+                            zoom: 0,
+                            zoomClamped: 0.0,
+                            zoomFactor: 16,
+                            sheer: 0,
+                            zoomCenter: [0, 0],
+                            rotation: rotation,
+                            escherAngle: -Math.PI / 2.0,
+                            escherScale: Math.pow(2, zoomClamped),
+                            warp: 1,
+                            plotPolar: 1,
+                        });
+                    } else if (show == "escher") {
+                        swirlPlot({
+                            texture,
+                            offset: [ctrl.x, ctrl.y],
+                            zoom,
+                            zoomClamped,
+                            zoomFactor: 16,
+                            sheer: sheers[activeTexture] ?? 0,
+                            zoomCenter: [0, 0],
+                            rotation: rotation,
+                            escherAngle: 0.463776890039444,
+                            escherScale: 1.117768667936325,
+                            warp: 1,
+                            plotPolar: 0,
+                        });
+                    } else if (show == "freestyle") {
+                        swirlPlot({
+                            texture,
+                            offset: [ctrl.x, ctrl.y],
+                            zoom,
+                            zoomClamped,
+                            zoomFactor: 16,
+                            sheer: sheers[activeTexture] ?? 0,
+                            zoomCenter: [0, 0],
+                            rotation: rotation + ctrl.z,
+                            escherAngle: ctrl.z,
+                            escherScale: ctrl.w,
+                            warp: 1,
+                            plotPolar: 0,
+                        });
+                    } else {
+                        swirlPlot({
+                            texture,
+                            offset: [ctrl.x, ctrl.y],
+                            zoom,
+                            zoomClamped,
+                            zoomFactor: 16,
+                            sheer: sheers[activeTexture] ?? 0,
+                            zoomCenter: [0, 0],
+                            rotation: rotation,
+                            escherAngle: 0.0,
+                            warp: 1,
+                            escherScale: 1,
+                            plotPolar: 0,
+                        });
+                    }
+                });
+
+                window.loader.classList.add("done");
+            </script>
+        </div>
     </body>
 </html>
