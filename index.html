@@ -3,16 +3,21 @@
     <head>
         <meta charset="utf-8" />
         <title>M.C. Escher Print Gallery Shader</title>
+
+        <meta name="viewport" content="initial-scale=1, viewport-fit=cover" />
         <link rel="icon" href="favicon.svg" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
             name="apple-mobile-web-app-status-bar-style"
             content="black-translucent"
         />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, viewport-fit=cover"
+        <link
+            rel="apple-touch-startup-image-template"
+            data-color="#300d48"
+            data-size="0"
+            href="favicon.svg"
         />
+
         <link rel="manifest" href="manifest.json" />
         <link rel="apple-touch-icon" href="favicon.svg" />
         <style>
@@ -22,7 +27,7 @@
             :root,
             html,
             body {
-                min-height: 100%;
+                min-height: calc(100% + env(safe-area-inset-top));
                 background-color: #594732;
                 font-family: monospace;
             }
@@ -198,6 +203,7 @@
                 background-color: #fffc;
                 border: 2px solid #300d48;
                 user-select: none;
+                margin-top: env(safe-area-inset-top);
                 max-height: 80vh;
                 overflow: auto;
             }
@@ -314,6 +320,11 @@
                 height: 100%;
                 width: 100%;
                 z-index: 10;
+                user-select: none;
+            }
+            text {
+                user-select: none;
+                pointer-events: none;
             }
             canvas {
                 height: 100%;
@@ -356,7 +367,7 @@
             .loader::before {
                 color: #fff;
                 content: "";
-                position: absolute;
+                position: fixed;
                 top: 0;
                 left: 0;
                 right: 0;
@@ -426,7 +437,6 @@
                 <canvas id="cnv" class="layer" tabindex="-1"></canvas>
             </label>
             <svg
-                id="vg"
                 class="layer"
                 viewbox="-100 -100 200 200"
                 preserveAspectRatio="xMidYMid meet"
@@ -448,6 +458,29 @@
                         id="ctrlPivot"
                     ></circle>
                     <g id="rotor" class="rotor gizmo">
+                        <path
+                            class="touch-area"
+                            fill="black"
+                            opacity="0.2"
+                            fill-rule="evenodd"
+                            d="
+                                                M 0,0
+                                                m -60,0
+                                                a 60,60 0 1,0 120,0
+                                                a 60,60 0 1,0 -120,0
+                                                z
+
+                                                M 0,0
+                                                m -30,0
+                                                a 30,30 0 1,0 60,0
+                                                a 30,30 0 1,0 -60,0
+                                                z
+                                                M 0 30 v 3
+                                                M 0 -30 v -7
+                                                M  30 0 h 3
+                                                M  -30 0 h -3
+                                              "
+                        />
                         <path
                             class="rotor-ring"
                             fill="black"
@@ -512,14 +545,20 @@
                 </g>
             </svg>
             <svg
-                id="vg"
                 class="layer"
-                viewbox="-100 -50 20 100"
-                style="justify-self: start; width: 8em; height: 100%"
+                viewbox="-100 -60 30 120"
+                style="justify-self: start; width: 6em; height: 100%"
                 preserveAspectRatio="xMinYMid meet"
             >
                 <g id="scroller" class="scroller gizmo">
-                    <rect x="-100" y="-100" width="20" height="200"></rect>
+                    <rect
+                        x="-100"
+                        y="-1000"
+                        width="30"
+                        height="2000"
+                        class="touch-area"
+                    ></rect>
+                    <rect x="-100" y="-50" width="20" height="100"></rect>
                     <polygon points="-95 20 -85 20 -90 25" fill="white" />
                     <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
                     <text
@@ -1522,6 +1561,186 @@
                         });
                     }
                 });
+
+                (() => {
+                    const splashTemplate = document.head.querySelector(
+                        'link[rel="apple-touch-startup-image-template"]',
+                    );
+                    const iOSDevice =
+                        !!navigator.platform.match(/iPhone|iPod|iPad/);
+
+                    if (!splashTemplate) {
+                        return;
+                    }
+
+                    const splashHref = splashTemplate.getAttribute("href");
+                    const splashColor =
+                        splashTemplate.getAttribute("data-color") || "white";
+                    const size = splashTemplate.hasAttribute("data-size")
+                        ? splashTemplate.getAttribute("data-size")
+                        : 0.5;
+
+                    if (!splashHref) {
+                        return;
+                    }
+
+                    const deviceWidth = screen.width;
+                    const deviceHeight = screen.height;
+                    const pixelRatio = window.devicePixelRatio || 1;
+                    const canvas = document.createElement("canvas");
+                    const canvas2 = document.createElement("canvas");
+                    const canvas3 = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    const ctx2 = canvas2.getContext("2d");
+                    const ctx3 = canvas3.getContext("2d");
+
+                    const iconImage = new Image();
+
+                    iconImage.onerror = () => {
+                        //throw new Error("Failed to load icon image");
+                    };
+
+                    iconImage.onload = () => {
+                        const defaultSize =
+                            (deviceWidth * size || iconImage.width) *
+                            pixelRatio;
+                        const imageRatio = iconImage.width
+                            ? iconImage.height / iconImage.width
+                            : 1;
+
+                        const iconSizew = defaultSize;
+                        const iconSizeh = defaultSize * imageRatio;
+
+                        canvas.width = deviceWidth * pixelRatio;
+                        canvas.height = deviceHeight * pixelRatio;
+                        canvas2.height = canvas.width;
+                        canvas2.width = canvas.height;
+                        canvas3.width = 150;
+                        canvas3.height = 150;
+                        ctx.fillStyle = splashColor;
+                        ctx2.fillStyle = splashColor;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx2.fillRect(0, 0, canvas2.width, canvas2.height);
+
+                        const x = (canvas.width - iconSizew) / 2;
+                        const y = (canvas.height - iconSizeh) / 2;
+                        const x2 = (canvas2.width - iconSizew) / 2;
+                        const y2 = (canvas2.height - iconSizeh) / 2;
+
+                        const radius = iconSizew / 5;
+                        ctx.beginPath();
+                        ctx.moveTo(x + radius, y);
+                        ctx.lineTo(x + iconSizew - radius, y);
+                        ctx.quadraticCurveTo(
+                            x + iconSizew,
+                            y,
+                            x + iconSizew,
+                            y + radius,
+                        );
+                        ctx.lineTo(x + iconSizew, y + iconSizeh - radius);
+                        ctx.quadraticCurveTo(
+                            x + iconSizew,
+                            y + iconSizeh,
+                            x + iconSizew - radius,
+                            y + iconSizeh,
+                        );
+                        ctx.lineTo(x + radius, y + iconSizeh);
+                        ctx.quadraticCurveTo(
+                            x,
+                            y + iconSizeh,
+                            x,
+                            y + iconSizeh - radius,
+                        );
+                        ctx.lineTo(x, y + radius);
+                        ctx.quadraticCurveTo(x, y, x + radius, y);
+                        ctx.closePath();
+                        ctx.clip();
+                        ctx.drawImage(iconImage, x, y, iconSizew, iconSizeh);
+                        ctx2.beginPath();
+                        ctx2.moveTo(x2 + radius, y2);
+                        ctx2.lineTo(x2 + iconSizew - radius, y2);
+                        ctx2.quadraticCurveTo(
+                            x2 + iconSizew,
+                            y2,
+                            x2 + iconSizew,
+                            y2 + radius,
+                        );
+                        ctx2.lineTo(x2 + iconSizew, y2 + iconSizeh - radius);
+                        ctx2.quadraticCurveTo(
+                            x2 + iconSizew,
+                            y2 + iconSizeh,
+                            x2 + iconSizew - radius,
+                            y2 + iconSizeh,
+                        );
+                        ctx2.lineTo(x2 + radius, y2 + iconSizeh);
+                        ctx2.quadraticCurveTo(
+                            x2,
+                            y2 + iconSizeh,
+                            x2,
+                            y2 + iconSizeh - radius,
+                        );
+                        ctx2.lineTo(x2, y2 + radius);
+                        ctx2.quadraticCurveTo(x2, y2, x2 + radius, y2);
+                        ctx2.closePath();
+                        ctx2.clip();
+                        ctx2.drawImage(iconImage, x2, y2, iconSizew, iconSizeh);
+                        ctx3.drawImage(
+                            iconImage,
+                            0,
+                            0,
+                            canvas3.width,
+                            canvas3.height,
+                        );
+                        const imageDataURLPortrait =
+                            canvas.toDataURL("image/png");
+                        const imageDataURLLandscape =
+                            canvas2.toDataURL("image/png");
+                        const imageDataURLIcon = canvas3.toDataURL("image/png");
+
+                        const appleTouchStartupImagePortrait =
+                            document.createElement("link");
+                        appleTouchStartupImagePortrait.setAttribute(
+                            "rel",
+                            "apple-touch-startup-image",
+                        );
+                        appleTouchStartupImagePortrait.setAttribute(
+                            "media",
+                            "screen and (orientation: portrait)",
+                        );
+                        appleTouchStartupImagePortrait.setAttribute(
+                            "href",
+                            imageDataURLPortrait,
+                        );
+                        document.head.appendChild(
+                            appleTouchStartupImagePortrait,
+                        );
+
+                        const appleTouchStartupImageLandscape =
+                            document.createElement("link");
+                        appleTouchStartupImageLandscape.setAttribute(
+                            "rel",
+                            "apple-touch-startup-image",
+                        );
+                        appleTouchStartupImageLandscape.setAttribute(
+                            "media",
+                            "screen and (orientation: landscape)",
+                        );
+                        appleTouchStartupImageLandscape.setAttribute(
+                            "href",
+                            imageDataURLLandscape,
+                        );
+                        document.head.appendChild(
+                            appleTouchStartupImageLandscape,
+                        );
+
+                        const appleTouchIcon = document.createElement("link");
+                        appleTouchIcon.setAttribute("rel", "apple-touch-icon");
+                        appleTouchIcon.setAttribute("href", imageDataURLIcon);
+                        document.head.appendChild(appleTouchIcon);
+                    };
+
+                    iconImage.src = splashHref;
+                })();
 
                 window.loader.classList.add("done");
             </script>
