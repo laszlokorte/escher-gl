@@ -1218,6 +1218,10 @@
                 );
                 show = formValues.show;
                 activeTexture = formValues.image;
+                texture = texture({
+                    data: textureImages[activeTexture],
+                    ...textureOptions,
+                });
                 window.ctrl.setAttribute("mode", show);
                 document.body.setAttribute("movie", formValues.movie ?? "no");
                 if (formValues.movie) {
@@ -1297,8 +1301,9 @@
                 wrap: ["repeat", "repeat"],
             };
 
-            const textures = textureImages.map((textureImage) => {
-                return regl.texture({ data: textureImage, ...textureOptions });
+            let texture = regl.texture({
+                data: textureImages[activeTexture],
+                ...textureOptions,
             });
 
             const swirlPlot = regl({
@@ -1344,20 +1349,18 @@
                     window.devicePixelRatio;
                 const expSize = Math.pow(
                     2,
-                    Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
+                    Math.ceil(Math.log(minSize) / Math.log(2)) + 1,
                 );
-                for (let t = 0; t < textures.length; t++) {
-                    if (textureImages.width < expSize) {
+
+                if (textureImages[activeTexture].width != expSize) {
+                    for (let t = 0; t < textureImages.length; t++) {
                         textureImages.width = expSize;
                         textureImages.height = expSize;
-                        const oldTexture = textures[t];
-                        textures[t] = regl.texture({
-                            data: textureImages[t],
-                            ...textureOptions,
-                        });
-
-                        oldTexture.destroy();
                     }
+                    texture = texture({
+                        data: textureImages[activeTexture],
+                        ...textureOptions,
+                    });
                 }
             }
             rsz();
@@ -1373,7 +1376,7 @@
                     depth: 1,
                 });
 
-                if (!textures[activeTexture]) {
+                if (!texture) {
                     return;
                 }
 
@@ -1382,7 +1385,7 @@
                         ctrl.y = ((ctrl.y + 0.01 + 1) % 2) - 1;
                     }
                     swirlPlot({
-                        texture: textures[activeTexture],
+                        texture,
                         offset: [ctrl.x, ctrl.y],
                         zoom: 0,
                         zoomClamped: 0.0,
@@ -1397,7 +1400,7 @@
                     });
                 } else if (show == "escher") {
                     swirlPlot({
-                        texture: textures[activeTexture],
+                        texture,
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
@@ -1412,7 +1415,7 @@
                     });
                 } else if (show == "freestyle") {
                     swirlPlot({
-                        texture: textures[activeTexture],
+                        texture,
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
@@ -1427,7 +1430,7 @@
                     });
                 } else {
                     swirlPlot({
-                        texture: textures[activeTexture],
+                        texture,
                         offset: [ctrl.x, ctrl.y],
                         zoom,
                         zoomClamped,
