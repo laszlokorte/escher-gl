@@ -350,6 +350,10 @@
                 display: none;
             }
 
+            .pushdown {
+                stroke-width: 0;
+            }
+
             .loader {
                 z-index: 100;
                 background-color: #594732;
@@ -563,8 +567,27 @@
                         class="touch-area"
                     ></rect>
                     <rect x="-100" y="-50" width="20" height="100"></rect>
-                    <polygon points="-95 20 -85 20 -90 25" fill="white" />
-                    <polygon points="-95 -20 -85 -20 -90 -25" fill="white" />
+                    <g id="scrollupBtn">
+                        <circle
+                            r="8"
+                            cx="-90"
+                            cy="-22"
+                            class="pushdown"
+                        ></circle>
+                        <polygon
+                            points="-95 -20 -85 -20 -90 -25"
+                            fill="white"
+                        />
+                    </g>
+                    <g id="scrolldownBtn">
+                        <circle
+                            r="8"
+                            cx="-90"
+                            cy="22"
+                            class="pushdown"
+                        ></circle>
+                        <polygon points="-95 20 -85 20 -90 25" fill="white" />
+                    </g>
                     <text
                         x="-90"
                         y="0"
@@ -815,8 +838,10 @@
                 });
 
                 const ctrl = { x: 0, y: 0, z: 0, w: 1 };
+                let demoSpeed = -0.005;
                 let rotation = 0;
-                let show = "droste";
+                let show = "escher";
+                let autozoom = 0;
                 let zoom = 0;
                 let zoomCyclic = 0;
                 let zoomClamped = 0;
@@ -903,6 +928,7 @@
                             Math.min(2, zoomClamped + delta),
                         );
                     }
+                    demoSpeed = 0;
                 });
                 {
                     let offset = {
@@ -953,6 +979,7 @@
 
                             ctrl.x = svgPos.x / 100;
                             ctrl.y = svgPos.y / 100;
+                            demoSpeed = 0;
                             evt.currentTarget.setAttribute(
                                 "transform",
                                 `translate(${svgPos.x}, ${svgPos.y})`,
@@ -1001,6 +1028,7 @@
                         evt.stopPropagation();
                         ctrl.z = 0;
                         ctrl.w = 1;
+                        demoSpeed = 0;
                         window.lever.setAttribute(
                             "transform",
                             `rotate(${(-ctrl.z * 180) / Math.PI})`,
@@ -1081,9 +1109,11 @@
                             prev.y = svgPos.y;
                             if (!evt.ctrlKey) {
                                 ctrl.z += angle;
+                                demoSpeed = 0;
                             }
                             if (!evt.shiftKey) {
                                 ctrl.w = rad;
+                                demoSpeed = 0;
                             }
                             window.lever.setAttribute(
                                 "transform",
@@ -1128,6 +1158,64 @@
                         x: 0,
                         y: 0,
                     };
+                    window.scrollupBtn.addEventListener("dblclick", (evt) => {
+                        evt.stopPropagation();
+                    });
+                    window.scrolldownBtn.addEventListener("dblclick", (evt) => {
+                        evt.stopPropagation();
+                    });
+                    window.scrollupBtn.addEventListener(
+                        "pointerdown",
+                        (evt) => {
+                            if (evt.isPrimary) {
+                                evt.stopPropagation();
+                                evt.currentTarget.setPointerCapture(
+                                    evt.pointerId,
+                                );
+                                autozoom = -0.01;
+                                demoSpeed = 0;
+                            }
+                        },
+                    );
+
+                    window.scrolldownBtn.addEventListener(
+                        "pointerdown",
+                        (evt) => {
+                            if (evt.isPrimary) {
+                                evt.stopPropagation();
+                                evt.currentTarget.setPointerCapture(
+                                    evt.pointerId,
+                                );
+                                autozoom = 0.01;
+                                demoSpeed = 0;
+                            }
+                        },
+                    );
+
+                    window.scrollupBtn.addEventListener(
+                        "pointercancel",
+                        (evt) => {
+                            autozoom = 0;
+                        },
+                    );
+
+                    window.scrolldownBtn.addEventListener(
+                        "pointercancel",
+                        (evt) => {
+                            autozoom = 0;
+                        },
+                    );
+
+                    window.scrollupBtn.addEventListener("pointerup", (evt) => {
+                        autozoom = 0;
+                    });
+
+                    window.scrolldownBtn.addEventListener(
+                        "pointerup",
+                        (evt) => {
+                            autozoom = 0;
+                        },
+                    );
                     window.scroller.ownerSVGElement.addEventListener(
                         "wheel",
                         (evt) => {
@@ -1141,6 +1229,7 @@
                                 0,
                                 Math.min(2, zoomClamped + delta),
                             );
+                            demoSpeed = 0;
                         },
                     );
                     let prev = 0;
@@ -1169,8 +1258,15 @@
                     window.scroller.addEventListener("pointermove", (evt) => {
                         evt.preventDefault();
                         if (
-                            evt.currentTarget.hasPointerCapture(evt.pointerId)
+                            evt.currentTarget.hasPointerCapture(
+                                evt.pointerId,
+                            ) ||
+                            window.scrolldownBtn.hasPointerCapture(
+                                evt.pointerId,
+                            ) ||
+                            window.scrollupBtn.hasPointerCapture(evt.pointerId)
                         ) {
+                            autozoom = 0;
                             const owner = evt.currentTarget.ownerSVGElement;
                             const pt = owner.createSVGPoint();
                             pt.x = evt.clientX;
@@ -1189,6 +1285,7 @@
                                 0,
                                 Math.min(2, zoomClamped + delta),
                             );
+                            demoSpeed = 0;
                         }
                     });
 
@@ -1203,14 +1300,17 @@
                     window.scroller.addEventListener(
                         "lostpointercapture",
                         (evt) => {
+                            autozoom = 0;
                             evt.currentTarget.classList.remove("active");
                         },
                     );
 
                     window.scroller.addEventListener("dblclick", (evt) => {
                         zoom = 0;
+                        demoSpeed = 0;
                         zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
                         zoomClamped = Math.max(0, Math.min(2, zoom));
+                        demoSpeed = 0;
                     });
                 }
                 {
@@ -1226,6 +1326,7 @@
                         const delta = evt.deltaY / 1400;
 
                         rotation += delta;
+                        demoSpeed = 0;
                         window.rotor.setAttribute(
                             "transform",
                             `rotate(${(-rotation * 180) / Math.PI})`,
@@ -1236,6 +1337,7 @@
                         evt.preventDefault();
                         evt.stopPropagation();
                         rotation = 0;
+                        demoSpeed = 0;
 
                         evt.currentTarget.removeAttribute("transform");
                     });
@@ -1297,6 +1399,7 @@
                             prev.x = svgPos.x;
                             prev.y = svgPos.y;
                             rotation += angle;
+                            demoSpeed = 0;
                             evt.currentTarget.setAttribute(
                                 "transform",
                                 `rotate(${(-rotation * 180) / Math.PI})`,
@@ -1368,6 +1471,7 @@
                     evt.stopPropagation();
                     ctrl.x = 0;
                     ctrl.y = 0;
+                    demoSpeed = 0;
                     evt.currentTarget.removeAttribute("transform");
                 });
 
@@ -1512,8 +1616,13 @@
                 window.addEventListener("resize", rsz);
 
                 regl.frame(({ time }) => {
+                    zoom += autozoom;
+
                     if (window.movie.checked) {
                         zoom -= 0.01;
+                        demoSpeed = 0;
+                    } else {
+                        zoom += demoSpeed;
                     }
                     regl.clear({
                         color: [0, 0, 0, 0],
