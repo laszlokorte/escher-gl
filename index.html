@@ -1168,11 +1168,11 @@
                         "pointerdown",
                         (evt) => {
                             if (evt.isPrimary) {
-                                evt.stopPropagation();
+                                evt.preventDefault();
                                 evt.currentTarget.setPointerCapture(
                                     evt.pointerId,
                                 );
-                                autozoom = -0.01;
+                                autozoom = -0.03;
                                 demoSpeed = 0;
                             }
                         },
@@ -1182,11 +1182,11 @@
                         "pointerdown",
                         (evt) => {
                             if (evt.isPrimary) {
-                                evt.stopPropagation();
+                                evt.preventDefault();
                                 evt.currentTarget.setPointerCapture(
                                     evt.pointerId,
                                 );
-                                autozoom = 0.01;
+                                autozoom = 0.03;
                                 demoSpeed = 0;
                             }
                         },
@@ -1234,9 +1234,10 @@
                     );
                     let prev = 0;
                     window.scroller.addEventListener("pointerdown", (evt) => {
-                        evt.preventDefault();
-                        evt.currentTarget.setPointerCapture(evt.pointerId);
-
+                        if (!evt.defaultPrevented) {
+                            evt.currentTarget.setPointerCapture(evt.pointerId);
+                            evt.preventDefault();
+                        }
                         const owner = evt.currentTarget.ownerSVGElement;
                         const bb = evt.currentTarget.getBoundingClientRect();
                         offset.x = evt.clientX - bb.left - bb.width / 2;
@@ -1266,7 +1267,7 @@
                             ) ||
                             window.scrollupBtn.hasPointerCapture(evt.pointerId)
                         ) {
-                            autozoom = 0;
+                            autozoom *= 0.8;
                             const owner = evt.currentTarget.ownerSVGElement;
                             const pt = owner.createSVGPoint();
                             pt.x = evt.clientX;
