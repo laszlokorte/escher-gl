@@ -183,7 +183,7 @@
                 stroke: aquamarine;
             }
 
-            rect {
+            .rect-ctrl {
                 opacity: 0.2;
                 fill: black;
             }
@@ -208,7 +208,7 @@
                 max-height: 80vh;
                 overflow: auto;
             }
-            label {
+            label:not([class]) {
                 display: flex;
                 gap: 1ex;
                 align-items: center;
@@ -279,12 +279,18 @@
                 font-size: inherit;
                 cursor: pointer;
             }
-            .button:hover,
-            button:hover {
+
+            button:disabled {
+                cursor: default;
+                opacity: 0.4;
+            }
+
+            .button:not(:disabled):hover,
+            button:not(:disabled):hover {
                 background-color: #600f68;
             }
-            .button:active,
-            button:active {
+            .button:not(:disabled):active,
+            button:not(:disabled):active {
                 background-color: #300038;
                 color: #fff;
             }
@@ -437,6 +443,115 @@
                 background-color: #e03031;
                 color: #fff;
             }
+
+            dialog {
+                min-width: 80vw;
+                min-height: 40vh;
+                max-height: 80vh;
+                max-width: 80vw;
+                overflow: auto;
+                padding: 0;
+                position: fixed;
+            }
+            dialog::backdrop {
+                background-color: #000c;
+            }
+
+            dialog > header {
+                display: flex;
+                align-items: center;
+                gap: 1em;
+                position: sticky;
+                justify-content: stretch;
+                top: 0;
+                margin: 0;
+                z-index: 1000;
+                color: #fff;
+                background-color: #300d48;
+                padding: 1em;
+            }
+            dialog > header > h2 {
+                flex-grow: 1;
+                margin: 0;
+                text-align: center;
+            }
+
+            input[type="file"] {
+                padding: 2em;
+                border: 2px solid #300d48;
+                background-color: #eee;
+                width: 100%;
+                flex-grow: 1;
+                box-sizing: border-box;
+            }
+
+            .close {
+                position: absolute;
+                right: 1rem;
+                padding: 0 0.5ex;
+                font-size: 3em;
+                display: flex;
+                width: 1em;
+                background-color: #fff3;
+                height: 1em;
+                justify-content: center;
+            }
+            .import-error {
+                font-weight: bold;
+                color: #a00;
+            }
+
+            .image-picker {
+                display: grid;
+                align-content: center;
+                justify-content: stretch;
+                justify-items: center;
+                padding: 2em;
+                gap: 1ex;
+            }
+
+            .image-picker-crop {
+                display: grid;
+                justify-content: stretch;
+                position: relative;
+            }
+
+            .image-picker-crop > * {
+                grid-area: 1 / 1 / -1 / -1;
+            }
+            .image-picker-overlay {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: 0;
+                overflow: visible;
+                width: 100%;
+                height: 100%;
+                display: block;
+                z-index: 100;
+            }
+
+            .image-picker-preview {
+                width: 100%;
+                height: 100%;
+                max-height: 50vh;
+                object-fit: contain;
+                object-position: center;
+                opacity: 0.4;
+            }
+            .custom-preview-canvas {
+                object-fit: contain;
+                position: absolute;
+                object-position: center;
+                width: 100%;
+                height: 100%;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: 0;
+                z-index: 20;
+            }
         </style>
     </head>
     <body>
@@ -456,7 +571,7 @@
                         y="-200"
                         width="400"
                         height="400"
-                        class="touch-area fallback"
+                        class="touch-area fallback rect-ctrl"
                     ></rect>
                     <circle
                         r="30"
@@ -564,9 +679,15 @@
                         y="-1000"
                         width="30"
                         height="2000"
-                        class="touch-area"
+                        class="touch-area rect-ctrl"
                     ></rect>
-                    <rect x="-100" y="-50" width="20" height="100"></rect>
+                    <rect
+                        class="rect-ctrl"
+                        x="-100"
+                        y="-50"
+                        width="20"
+                        height="100"
+                    ></rect>
                     <g id="scrollupBtn">
                         <circle
                             r="8"
@@ -611,6 +732,15 @@
                                     <option disabled>Choose</option>
                                 </select>
                             </label>
+                            <button
+                                command="show-modal"
+                                commandfor="custom-image"
+                                type="button"
+                                id="custom"
+                            >
+                                Custom Image
+                            </button>
+
                             <label class="button">
                                 <input
                                     style="display: none"
@@ -644,6 +774,280 @@
                             >More Tools</a
                         >
                         <div id="errorBox"></div>
+                        <dialog closedby="any" open id="custom-image">
+                            <header>
+                                <h2>Import your custom Image</h2>
+
+                                <button
+                                    class="close"
+                                    type="button"
+                                    command="close"
+                                    commandfor="custom-image"
+                                >
+                                    🞮
+                                </button>
+                            </header>
+                            <section
+                                style="
+                                    text-align: center;
+                                    display: grid;
+                                    justify-items: center;
+                                    justify-content: center;
+                                    text-align: center;
+                                    padding: 2em;
+                                "
+                            >
+                                <form
+                                    method="dialog"
+                                    style="display: contents"
+                                    onsubmit="
+                                        const formValues = Object.fromEntries(
+                                            new FormData(this),
+                                        );
+                                        const zoom = Math.pow(
+                                            1 << formValues.drosteFactor,
+                                            2,
+                                        );
+                                        const o =
+                                            document.createElement('option');
+                                        const ti =
+                                            window.textureSelect
+                                                .childElementCount - 1;
+                                        o.appendChild(
+                                            document.createTextNode(
+                                                (formValues.label ||
+                                                    'Custom #' + (ti - 2)) +
+                                                    ' (' +
+                                                    zoom +
+                                                    '×)',
+                                            ),
+                                        );
+                                        o.setAttribute('selected', true);
+                                        o.setAttribute('value', ti);
+                                        activeTexture = ti;
+                                        window.textureSelect.appendChild(o);
+                                        window.addTextureImage(
+                                            this.querySelector('canvas'),
+                                            zoom,
+                                        );
+                                        window.textureSelect.dispatchEvent(
+                                            new Event('input', {
+                                                bubbles: true,
+                                            }),
+                                        );
+                                    "
+                                >
+                                    <p>
+                                        Select an image file from your computer.
+                                        <br />
+                                        For best results prefer square SVG
+                                        images.
+                                    </p>
+                                    <label class="image-picker">
+                                        <input
+                                            type="file"
+                                            name="custom_image_file"
+                                            id="custom_image_file"
+                                        />
+                                        <div class="image-picker-crop">
+                                            <img
+                                                src="custom.svg"
+                                                class="image-picker-preview"
+                                                id="custom-preview"
+                                            />
+                                            <svg
+                                                class="image-picker-overlay"
+                                                preserveAspectRatio="xMidYMid meet"
+                                                viewBox="0 0 1024 1024"
+                                                width="1024"
+                                                height="1024"
+                                            >
+                                                <rect
+                                                    x="0"
+                                                    y="0"
+                                                    stroke-width="8"
+                                                    width="1024"
+                                                    height="1024"
+                                                    stroke="#e03031"
+                                                    stroke-dasharray="4 12"
+                                                    stroke-linecap="round"
+                                                    fill-opacity="0.1"
+                                                    fill="#e03031"
+                                                ></rect>
+                                                <rect
+                                                    x="0"
+                                                    y="0"
+                                                    transform-origin="50%"
+                                                    stroke-width="4"
+                                                    stroke-dasharray="0 8"
+                                                    stroke-linecap="round"
+                                                    width="1024"
+                                                    transform="scale(0.25)"
+                                                    vector-effect="non-scaling-stroke"
+                                                    height="1024"
+                                                    stroke="yellowgreen"
+                                                    fill-opacity="0.1"
+                                                    fill="yellowgreen"
+                                                    id="drosteCrop"
+                                                    cursor="drag"
+                                                ></rect>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="import-error"
+                                            id="importError"
+                                        ></div>
+                                        <script type="module">
+                                            const input =
+                                                document.getElementById(
+                                                    "custom_image_file",
+                                                );
+                                            const preview =
+                                                document.getElementById(
+                                                    "custom-preview",
+                                                );
+
+                                            const onchange = () => {
+                                                const file = input.files[0];
+                                                if (!file) return;
+                                                while (importError.firstChild) {
+                                                    importError.removeChild(
+                                                        importError.firstChild,
+                                                    );
+                                                }
+
+                                                preview.src =
+                                                    URL.createObjectURL(file);
+
+                                                preview.onerror = (e) => {
+                                                    preview.src = "custom.svg";
+                                                    console.error(e);
+                                                    importError.appendChild(
+                                                        document.createTextNode(
+                                                            "The selected image could not be imported. Please try another one.",
+                                                        ),
+                                                    );
+                                                };
+                                                // Optional: free the object URL after the image has loaded.
+                                                preview.onload = () => {
+                                                    const size = Math.min(
+                                                        preview.naturalWidth,
+                                                        preview.naturalHeight,
+                                                    );
+
+                                                    const sx =
+                                                        (preview.naturalWidth -
+                                                            size) /
+                                                        2;
+                                                    const sy =
+                                                        (preview.naturalHeight -
+                                                            size) /
+                                                        2;
+
+                                                    const canvas =
+                                                        document.createElement(
+                                                            "canvas",
+                                                        );
+                                                    canvas.classList.add(
+                                                        "custom-preview-canvas",
+                                                    );
+                                                    canvas.width = 2048;
+                                                    canvas.height = 2048;
+
+                                                    const ctx =
+                                                        canvas.getContext("2d");
+
+                                                    ctx.drawImage(
+                                                        preview,
+                                                        sx,
+                                                        sy,
+                                                        size,
+                                                        size,
+                                                        0,
+                                                        0,
+                                                        2048,
+                                                        2048,
+                                                    );
+
+                                                    const oldCanvas =
+                                                        preview.parentElement.querySelector(
+                                                            "canvas",
+                                                        );
+                                                    if (oldCanvas) {
+                                                        oldCanvas.remove();
+                                                    }
+                                                    preview.parentElement.appendChild(
+                                                        canvas,
+                                                    );
+                                                    URL.revokeObjectURL(
+                                                        preview.src,
+                                                    );
+                                                };
+                                            };
+                                            onchange();
+                                            input.addEventListener(
+                                                "change",
+                                                onchange,
+                                            );
+                                        </script>
+                                    </label>
+
+                                    <label
+                                        style="
+                                            style: flex;
+                                            width: 100%;
+                                            flex-direction: column-reverse;
+                                        "
+                                    >
+                                        Droste Factor
+                                        <input
+                                            oninput="
+                                                window.drosteCrop.setAttribute(
+                                                    'transform',
+                                                    `scale(${1 / (1 << this.valueAsNumber)})`,
+                                                );
+                                                const zoom = Math.pow(
+                                                    1 << this.valueAsNumber,
+                                                    2,
+                                                );
+                                                this.nextElementSibling.value = `${zoom}×`;
+                                            "
+                                            type="range"
+                                            value="2"
+                                            name="drosteFactor"
+                                            style="width: 50%; order: -2"
+                                            min="1"
+                                            max="4"
+                                            step="1"
+                                        />
+                                        <output class="output-factor"
+                                            >16×</output
+                                        >
+                                    </label>
+                                    <label
+                                        style="
+                                            style: flex;
+                                            width: 100%;
+                                            flex-direction: column;
+                                        "
+                                    >
+                                        Label
+                                        <input
+                                            type="text"
+                                            name="label"
+                                            placeholder="Optional"
+                                        />
+                                    </label>
+                                    <button
+                                        type="submit"
+                                        value="ok"
+                                        style="font-size: 2rem; margin-top: 1em"
+                                    >
+                                        Import (coming soon)
+                                    </button>
+                                </form>
+                            </section>
+                        </dialog>
                     </div>
                     <details>
                         <summary>Show Shader / About</summary>
@@ -1487,7 +1891,8 @@
                 );
 
                 const images = ["house.svg", "grid.svg", "clock.svg"];
-                const sheers = [0.1, 0.0];
+                const sheers = [0.1, 0.0, 0];
+                const zoomFactors = [16, 16, 16];
 
                 const shaderLoader = await Promise.all(
                     Object.entries({
@@ -1507,6 +1912,11 @@
                     shaderLoader,
                 ]);
 
+                window.addTextureImage = (im, z) => {
+                    textureImages.push(im);
+                    zoomFactors.push(z);
+                };
+
                 window.vertexCode.appendChild(
                     document.createTextNode(shaders.vertex),
                 );
@@ -1514,7 +1924,7 @@
                     document.createTextNode(shaders.fragment),
                 );
                 const regl = createREGL({
-                    canvas: cnv,
+                    canvas: window.cnv,
                     pixelRatio: Math.max(1.5, window.devicePixelRatio || 1),
                     attributes: {
                         antialias: true,
@@ -1615,6 +2025,7 @@
                 rsz();
 
                 window.addEventListener("resize", rsz);
+                window.addEventListener("fullscreenchange", rsz);
 
                 regl.frame(({ time }) => {
                     zoom += autozoom;
@@ -1634,69 +2045,82 @@
                         return;
                     }
 
-                    if (show === "log") {
-                        if (window.movie.checked) {
-                            ctrl.y = ((ctrl.y + 0.01 + 1) % 2) - 1;
-                        }
-                        swirlPlot({
-                            texture,
-                            offset: [ctrl.x, ctrl.y],
-                            zoom: 0,
-                            zoomClamped: 0.0,
-                            zoomFactor: 16,
-                            sheer: 0,
-                            zoomCenter: [0, 0],
-                            rotation: rotation,
-                            escherAngle: -Math.PI / 2.0,
-                            escherScale: Math.pow(2, zoomClamped),
-                            warp: 1,
-                            plotPolar: 1,
-                        });
-                    } else if (show == "escher") {
-                        swirlPlot({
-                            texture,
-                            offset: [ctrl.x, ctrl.y],
-                            zoom,
-                            zoomClamped,
-                            zoomFactor: 16,
-                            sheer: sheers[activeTexture] ?? 0,
-                            zoomCenter: [0, 0],
-                            rotation: rotation,
-                            escherAngle: 0.463776890039444,
-                            escherScale: 1.117768667936325,
-                            warp: 1,
-                            plotPolar: 0,
-                        });
-                    } else if (show == "freestyle") {
-                        swirlPlot({
-                            texture,
-                            offset: [ctrl.x, ctrl.y],
-                            zoom,
-                            zoomClamped,
-                            zoomFactor: 16,
-                            sheer: sheers[activeTexture] ?? 0,
-                            zoomCenter: [0, 0],
-                            rotation: rotation + ctrl.z,
-                            escherAngle: ctrl.z,
-                            escherScale: ctrl.w,
-                            warp: 1,
-                            plotPolar: 0,
-                        });
-                    } else {
-                        swirlPlot({
-                            texture,
-                            offset: [ctrl.x, ctrl.y],
-                            zoom,
-                            zoomClamped,
-                            zoomFactor: 16,
-                            sheer: sheers[activeTexture] ?? 0,
-                            zoomCenter: [0, 0],
-                            rotation: rotation,
-                            escherAngle: 0.0,
-                            warp: 1,
-                            escherScale: 1,
-                            plotPolar: 0,
-                        });
+                    switch (show) {
+                        case "log":
+                            {
+                                if (window.movie.checked) {
+                                    ctrl.y = ((ctrl.y + 0.01 + 1) % 2) - 1;
+                                }
+                                swirlPlot({
+                                    texture,
+                                    offset: [ctrl.x, ctrl.y],
+                                    zoom: 0,
+                                    zoomClamped: 0.0,
+                                    zoomFactor: zoomFactors[activeTexture],
+                                    sheer: 0,
+                                    zoomCenter: [0, 0],
+                                    rotation: rotation,
+                                    escherAngle: -Math.PI / 2.0,
+                                    escherScale: Math.pow(2, zoomClamped),
+                                    warp: 1,
+                                    plotPolar: 1,
+                                });
+                            }
+                            break;
+                        case "escher":
+                            {
+                                swirlPlot({
+                                    texture,
+                                    offset: [ctrl.x, ctrl.y],
+                                    zoom,
+                                    zoomClamped,
+                                    zoomFactor: zoomFactors[activeTexture],
+                                    sheer: sheers[activeTexture] ?? 0,
+                                    zoomCenter: [0, 0],
+                                    rotation: rotation,
+                                    escherAngle: 0.463776890039444,
+                                    escherScale: 1.117768667936325,
+                                    warp: 1,
+                                    plotPolar: 0,
+                                });
+                            }
+                            break;
+                        case "freestyle":
+                            {
+                                swirlPlot({
+                                    texture,
+                                    offset: [ctrl.x, ctrl.y],
+                                    zoom,
+                                    zoomClamped,
+                                    zoomFactor: zoomFactors[activeTexture],
+                                    sheer: sheers[activeTexture] ?? 0,
+                                    zoomCenter: [0, 0],
+                                    rotation: rotation + ctrl.z,
+                                    escherAngle: ctrl.z,
+                                    escherScale: ctrl.w,
+                                    warp: 1,
+                                    plotPolar: 0,
+                                });
+                            }
+                            break;
+                        case "droste":
+                            {
+                                swirlPlot({
+                                    texture,
+                                    offset: [ctrl.x, ctrl.y],
+                                    zoom,
+                                    zoomClamped,
+                                    zoomFactor: zoomFactors[activeTexture],
+                                    sheer: sheers[activeTexture] ?? 0,
+                                    zoomCenter: [0, 0],
+                                    rotation: rotation,
+                                    escherAngle: 0.0,
+                                    warp: 1,
+                                    escherScale: 1,
+                                    plotPolar: 0,
+                                });
+                            }
+                            break;
                     }
                 });
 
