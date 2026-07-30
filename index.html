@@ -535,6 +535,8 @@
             .image-picker-preview {
                 width: 100%;
                 height: 100%;
+                min-width: 10em;
+                min-height: 10em;
                 max-height: 25vh;
                 object-fit: contain;
                 object-position: center;
@@ -546,6 +548,8 @@
                 object-position: center;
                 width: 100%;
                 height: 100%;
+                min-width: 10em;
+                min-height: 10em;
                 left: 0;
                 right: 0;
                 bottom: 0;
@@ -734,7 +738,7 @@
                             </label>
                             <button
                                 command="show-modal"
-                                commandfor="custom-image"
+                                commandfor="customImageImport"
                                 type="button"
                                 id="custom"
                             >
@@ -774,7 +778,7 @@
                             >More Tools</a
                         >
                         <div id="errorBox"></div>
-                        <dialog closedby="any" id="custom-image">
+                        <dialog closedby="any" id="customImageImport">
                             <header>
                                 <h2>Import your custom Image</h2>
 
@@ -782,7 +786,7 @@
                                     class="close"
                                     type="button"
                                     command="close"
-                                    commandfor="custom-image"
+                                    commandfor="customImageImport"
                                 >
                                     🞮
                                 </button>
@@ -798,44 +802,9 @@
                                 "
                             >
                                 <form
+                                    id="importForm"
                                     method="dialog"
                                     style="display: contents"
-                                    onsubmit="
-                                        const formValues = Object.fromEntries(
-                                            new FormData(this),
-                                        );
-                                        const zoom = Math.pow(
-                                            1 << formValues.drosteFactor,
-                                            2,
-                                        );
-                                        const o =
-                                            document.createElement('option');
-                                        const ti =
-                                            window.textureSelect
-                                                .childElementCount - 1;
-                                        o.appendChild(
-                                            document.createTextNode(
-                                                (formValues.label ||
-                                                    'Custom #' + (ti - 2)) +
-                                                    ' (' +
-                                                    zoom +
-                                                    '×)',
-                                            ),
-                                        );
-                                        o.setAttribute('selected', true);
-                                        o.setAttribute('value', ti);
-                                        activeTexture = ti;
-                                        window.textureSelect.appendChild(o);
-                                        window.addTextureImage(
-                                            this.querySelector('canvas'),
-                                            zoom,
-                                        );
-                                        window.textureSelect.dispatchEvent(
-                                            new Event('input', {
-                                                bubbles: true,
-                                            }),
-                                        );
-                                    "
                                 >
                                     <p>
                                         Select an image file from your computer.
@@ -854,6 +823,8 @@
                                                 src="custom.svg"
                                                 class="image-picker-preview"
                                                 id="custom-preview"
+                                                width="2048"
+                                                height="2048"
                                             />
                                             <svg
                                                 class="image-picker-overlay"
@@ -898,6 +869,10 @@
                                             id="importError"
                                         ></div>
                                         <script type="module">
+                                            window.importForm.addEventListener(
+                                                "submit",
+                                                (evt) => {},
+                                            );
                                             const input =
                                                 document.getElementById(
                                                     "custom_image_file",
@@ -907,13 +882,93 @@
                                                     "custom-preview",
                                                 );
 
-                                            const onchange = () => {
+                                            function extractSVGViewBox(
+                                                preview,
+                                            ) {
+                                                const size = Math.min(
+                                                    preview.naturalWidth,
+                                                    preview.naturalHeight,
+                                                );
+
+                                                const sx =
+                                                    (preview.naturalWidth -
+                                                        size) /
+                                                    2;
+                                                const sy =
+                                                    (preview.naturalHeight -
+                                                        size) /
+                                                    2;
+
+                                                return { size, sx, sy };
+                                            }
+                                            async function validateSvg(file) {
+                                                if (
+                                                    file.type !==
+                                                        "image/svg+xml" &&
+                                                    !file.name
+                                                        .toLowerCase()
+                                                        .endsWith(".svg")
+                                                ) {
+                                                    return false; // not SVG, handle normally
+                                                }
+
+                                                const text = await file.text();
+
+                                                const doc =
+                                                    new DOMParser().parseFromString(
+                                                        text,
+                                                        "image/svg+xml",
+                                                    );
+
+                                                if (
+                                                    doc.querySelector(
+                                                        "parsererror",
+                                                    )
+                                                ) {
+                                                    return "Invalid SVG file";
+                                                }
+
+                                                const svg = doc.documentElement;
+
+                                                const width =
+                                                    svg.getAttribute("width");
+                                                const height =
+                                                    svg.getAttribute("height");
+
+                                                if (!width || !height) {
+                                                    return "SVG must have explicit width and height";
+                                                }
+
+                                                if (
+                                                    width.endsWith("%") ||
+                                                    height.endsWith("%")
+                                                ) {
+                                                    return "SVG width and height must not be percentages";
+                                                }
+
+                                                return false;
+                                            }
+
+                                            const onchange = async () => {
+                                                window.importSubmit.disabled = false;
                                                 const file = input.files[0];
-                                                if (!file) return;
                                                 while (importError.firstChild) {
                                                     importError.removeChild(
                                                         importError.firstChild,
                                                     );
+                                                }
+
+                                                if (!file) return;
+                                                const svgError =
+                                                    await validateSvg(file);
+                                                if (svgError) {
+                                                    window.importSubmit.disabled = true;
+                                                    importError.appendChild(
+                                                        document.createTextNode(
+                                                            svgError,
+                                                        ),
+                                                    );
+                                                    return;
                                                 }
 
                                                 preview.src =
@@ -922,6 +977,7 @@
                                                 preview.onerror = (e) => {
                                                     preview.src = "custom.svg";
                                                     console.error(e);
+                                                    window.importSubmit.disabled = true;
                                                     importError.appendChild(
                                                         document.createTextNode(
                                                             "The selected image could not be imported. Please try another one.",
@@ -929,21 +985,11 @@
                                                     );
                                                 };
                                                 // Optional: free the object URL after the image has loaded.
-                                                preview.onload = () => {
-                                                    const size = Math.min(
-                                                        preview.naturalWidth,
-                                                        preview.naturalHeight,
-                                                    );
-
-                                                    const sx =
-                                                        (preview.naturalWidth -
-                                                            size) /
-                                                        2;
-                                                    const sy =
-                                                        (preview.naturalHeight -
-                                                            size) /
-                                                        2;
-
+                                                preview.onload = async () => {
+                                                    const { size, sx, sy } =
+                                                        extractSVGViewBox(
+                                                            preview,
+                                                        );
                                                     const canvas =
                                                         document.createElement(
                                                             "canvas",
@@ -1039,6 +1085,7 @@
                                         />
                                     </label>
                                     <button
+                                        id="importSubmit"
                                         type="submit"
                                         value="ok"
                                         style="font-size: 2rem; margin-top: 1em"
@@ -1916,10 +1963,58 @@
                     shaderLoader,
                 ]);
 
-                window.addTextureImage = (im, z) => {
+                const addTextureImage = (im, z) => {
                     textureImages.push(im);
                     zoomFactors.push(z);
+
+                    rsz();
                 };
+
+                window.customImageImport.addEventListener("close", (evt) => {
+                    const formValues = Object.fromEntries(
+                        new FormData(window.importForm),
+                    );
+                    const zoom = Math.pow(1 << formValues.drosteFactor, 2);
+                    const label = formValues.label;
+                    const image = new Image();
+                    image.width = 2048;
+                    image.height = 2048;
+                    image.src = window.importForm
+                        .querySelector("canvas")
+                        .toDataURL("image/png");
+
+                    image.onerror = (e) => {
+                        window.errorBox.appendChild(
+                            document.createTextNode("Image import failed"),
+                        );
+                        URL.revokeObjectURL(image.src);
+                    };
+                    image.onload = async () => {
+                        if (image && zoom) {
+                            const o = document.createElement("option");
+                            const ti =
+                                window.textureSelect.childElementCount - 1;
+                            o.appendChild(
+                                document.createTextNode(
+                                    label || "Custom #" + (ti - 2),
+                                    +" (" + zoom + "×)",
+                                ),
+                            );
+                            o.setAttribute("selected", true);
+                            o.setAttribute("value", ti);
+                            activeTexture = ti;
+                            window.textureSelect.appendChild(o);
+                            addTextureImage(image, zoom, true);
+                            window.textureSelect.dispatchEvent(
+                                new Event("input", {
+                                    bubbles: true,
+                                }),
+                            );
+
+                            URL.revokeObjectURL(image.src);
+                        }
+                    };
+                });
 
                 window.vertexCode.appendChild(
                     document.createTextNode(shaders.vertex),
