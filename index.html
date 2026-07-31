@@ -871,7 +871,12 @@
                                         <script type="module">
                                             window.importForm.addEventListener(
                                                 "submit",
-                                                (evt) => {},
+                                                (evt) => {
+                                                    evt.preventDefault();
+                                                    customImageImport.close(
+                                                        "import",
+                                                    );
+                                                },
                                             );
                                             const input =
                                                 document.getElementById(
@@ -1971,6 +1976,9 @@
                 };
 
                 window.customImageImport.addEventListener("close", (evt) => {
+                    if (evt.currentTarget.returnValue != "import") {
+                        return;
+                    }
                     const formValues = Object.fromEntries(
                         new FormData(window.importForm),
                     );
