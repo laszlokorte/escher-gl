@@ -475,6 +475,9 @@
                 margin: 0;
                 text-align: center;
             }
+            dialog.dragging {
+                outline: 1em solid yellowgreen;
+            }
 
             input[type="file"] {
                 padding: 2em;
@@ -555,6 +558,11 @@
                 bottom: 0;
                 top: 0;
                 z-index: 20;
+            }
+
+            input[type="text"] {
+                font: inherit;
+                padding: 1em;
             }
         </style>
     </head>
@@ -788,7 +796,32 @@
                                     command="close"
                                     commandfor="customImageImport"
                                 >
-                                    🞮
+                                    <svg
+                                        viewBox="-10 -10 20 20"
+                                        width="10"
+                                        height="10"
+                                    >
+                                        <g
+                                            transform="rotate(45)"
+                                            transform-box="fill-box"
+                                            transform-origin="0 0"
+                                        >
+                                            <rect
+                                                x="-10"
+                                                y="-2"
+                                                width="20"
+                                                height="4"
+                                                fill="currentColor"
+                                            ></rect>
+                                            <rect
+                                                x="-2"
+                                                y="-10"
+                                                width="4"
+                                                fill="currentColor"
+                                                height="20"
+                                            ></rect>
+                                        </g>
+                                    </svg>
                                 </button>
                             </header>
                             <section
@@ -857,8 +890,8 @@
                                                     vector-effect="non-scaling-stroke"
                                                     height="1024"
                                                     stroke="yellowgreen"
-                                                    fill-opacity="0.1"
-                                                    fill="yellowgreen"
+                                                    fill-opacity="0.8"
+                                                    fill="white"
                                                     id="drosteCrop"
                                                     cursor="drag"
                                                 ></rect>
@@ -873,9 +906,15 @@
                                                 "submit",
                                                 (evt) => {
                                                     evt.preventDefault();
-                                                    customImageImport.close(
-                                                        "import",
-                                                    );
+                                                    if (
+                                                        evt.currentTarget.querySelector(
+                                                            "canvas",
+                                                        )
+                                                    ) {
+                                                        customImageImport.close(
+                                                            "import",
+                                                        );
+                                                    }
                                                 },
                                             );
                                             const input =
@@ -914,7 +953,7 @@
                                                         .toLowerCase()
                                                         .endsWith(".svg")
                                                 ) {
-                                                    return false; // not SVG, handle normally
+                                                    return false;
                                                 }
 
                                                 const text = await file.text();
@@ -963,7 +1002,10 @@
                                                     );
                                                 }
 
+                                                importSubmit.disabled = true;
                                                 if (!file) return;
+
+                                                importSubmit.disabled = false;
                                                 const svgError =
                                                     await validateSvg(file);
                                                 if (svgError) {
@@ -973,6 +1015,7 @@
                                                             svgError,
                                                         ),
                                                     );
+                                                    importSubmit.disabled = true;
                                                     return;
                                                 }
 
@@ -989,7 +1032,6 @@
                                                         ),
                                                     );
                                                 };
-                                                // Optional: free the object URL after the image has loaded.
                                                 preview.onload = async () => {
                                                     const { size, sx, sy } =
                                                         extractSVGViewBox(
@@ -1040,6 +1082,56 @@
                                                 "change",
                                                 onchange,
                                             );
+                                            customImageImport.addEventListener(
+                                                "dragover",
+                                                (e) => {
+                                                    e.preventDefault();
+                                                    customImageImport.classList.add(
+                                                        "dragging",
+                                                    );
+                                                },
+                                            );
+
+                                            customImageImport.addEventListener(
+                                                "dragleave",
+                                                () => {
+                                                    customImageImport.classList.remove(
+                                                        "dragging",
+                                                    );
+                                                },
+                                            );
+
+                                            customImageImport.addEventListener(
+                                                "drop",
+                                                (e) => {
+                                                    e.preventDefault();
+                                                    customImageImport.classList.remove(
+                                                        "dragging",
+                                                    );
+
+                                                    const files =
+                                                        e.dataTransfer.files;
+
+                                                    if (files.length) {
+                                                        const dt =
+                                                            new DataTransfer();
+                                                        for (const file of files) {
+                                                            dt.items.add(file);
+                                                        }
+
+                                                        input.files = dt.files;
+
+                                                        input.dispatchEvent(
+                                                            new Event(
+                                                                "change",
+                                                                {
+                                                                    bubbles: true,
+                                                                },
+                                                            ),
+                                                        );
+                                                    }
+                                                },
+                                            );
                                         </script>
                                     </label>
 
@@ -1086,6 +1178,7 @@
                                         <input
                                             type="text"
                                             name="label"
+                                            autocomplete="off"
                                             placeholder="Optional"
                                         />
                                     </label>
@@ -1299,7 +1392,6 @@
                 let show = "escher";
                 let autozoom = 0;
                 let zoom = 0;
-                let zoomCyclic = 0;
                 let zoomClamped = 0;
 
                 window.addEventListener("keydown", (evt) => {
@@ -1366,6 +1458,25 @@
 
                 window.movie.checked = false;
 
+                function zoomMod(zoom) {
+                    let escherScale = 1;
+                    switch (show) {
+                        case "escher":
+                            escherScale = 1.117768667936325;
+                            break;
+                        case "freestyle":
+                            escherScale = ctrl.w;
+                            break;
+                    }
+                    const period = 10 / escherScale;
+
+                    const zoomCyclic =
+                        ((((zoom + period / 2) % period) + period) % period) -
+                        period / 2;
+
+                    return zoomCyclic;
+                }
+
                 window.ctrl.ownerSVGElement.addEventListener("wheel", (evt) => {
                     evt.preventDefault();
                     evt.stopPropagation();
@@ -1378,7 +1489,7 @@
                         );
                     } else {
                         zoom += delta;
-                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                        zoom = zoomMod(zoom);
                         zoomClamped = Math.max(
                             0,
                             Math.min(2, zoomClamped + delta),
@@ -1482,8 +1593,14 @@
                     window.lever.addEventListener("dblclick", (evt) => {
                         evt.preventDefault();
                         evt.stopPropagation();
-                        ctrl.z = 0;
-                        ctrl.w = 1;
+
+                        if (evt.shiftKey) {
+                            ctrl.z = 0.463776890039444 * (evt.altKey ? -1 : 1);
+                            ctrl.w = 1.117768667936325;
+                        } else {
+                            ctrl.z = 0;
+                            ctrl.w = 1;
+                        }
                         demoSpeed = 0;
                         window.lever.setAttribute(
                             "transform",
@@ -1498,13 +1615,27 @@
                             "x2",
                             Math.max(10, ctrl.w * 70 - 10),
                         );
-
-                        evt.currentTarget.removeAttribute("transform");
                     });
-
                     window.lever.addEventListener("pointerdown", (evt) => {
                         evt.stopPropagation();
                         evt.preventDefault();
+                        if (evt.altKey && evt.isPrimary) {
+                            ctrl.z *= -1;
+                            window.lever.setAttribute(
+                                "transform",
+                                `rotate(${(-ctrl.z * 180) / Math.PI})`,
+                            );
+                            window.leverHead.setAttribute(
+                                "transform",
+                                `translate(${(ctrl.w - 1) * 70}, 0)`,
+                            );
+
+                            window.leverBar.setAttribute(
+                                "x2",
+                                Math.max(10, ctrl.w * 70 - 10),
+                            );
+                            return;
+                        }
                         evt.currentTarget.setPointerCapture(evt.pointerId);
 
                         const owner = evt.currentTarget.ownerSVGElement;
@@ -1680,7 +1811,7 @@
                             const delta = evt.deltaY / 1400;
 
                             zoom += delta;
-                            zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                            zoom = zoomMod(zoom);
                             zoomClamped = Math.max(
                                 0,
                                 Math.min(2, zoomClamped + delta),
@@ -1737,7 +1868,8 @@
                             prev = svgPos.y;
 
                             zoom += delta;
-                            zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+                            zoom = zoomMod(zoom);
+
                             zoomClamped = Math.max(
                                 0,
                                 Math.min(2, zoomClamped + delta),
@@ -1765,7 +1897,9 @@
                     window.scroller.addEventListener("dblclick", (evt) => {
                         zoom = 0;
                         demoSpeed = 0;
-                        zoomCyclic = ((((zoom + 2) % 4) + 4) % 4) - 2;
+
+                        zoom = zoomMod(zoom);
+
                         zoomClamped = Math.max(0, Math.min(2, zoom));
                         demoSpeed = 0;
                     });
@@ -1946,9 +2080,21 @@
                     Math.ceil(Math.log(minSize) / Math.log(2)) + 2,
                 );
 
-                const images = ["house.svg", "grid.svg", "clock.svg"];
-                const sheers = [0.1, 0.0, 0];
-                const zoomFactors = [16, 16, 16];
+                const images = [
+                    "house.svg",
+                    "grid.svg",
+                    "clock.svg",
+                    "firefox-droste.svg",
+                ];
+                const orientations = [1, 1, 1, -1];
+                const sheers = [0.1, 0.0, 0, 0];
+                const zoomFactors = [16, 16, 16, 16];
+                const zoomCenters = [
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                ];
 
                 const shaderLoader = await Promise.all(
                     Object.entries({
@@ -1968,9 +2114,12 @@
                     shaderLoader,
                 ]);
 
-                const addTextureImage = (im, z) => {
+                const addTextureImage = (im, z = 16, c = [0, 0], o = 1) => {
                     textureImages.push(im);
                     zoomFactors.push(z);
+
+                    zoomCenters.push(c);
+                    orientations.push(o);
 
                     rsz();
                 };
@@ -2012,7 +2161,10 @@
                             o.setAttribute("value", ti);
                             activeTexture = ti;
                             window.textureSelect.appendChild(o);
-                            addTextureImage(image, zoom, true);
+                            addTextureImage(
+                                image,
+                                1 << formValues.drosteFactor,
+                            );
                             window.textureSelect.dispatchEvent(
                                 new Event("input", {
                                     bubbles: true,
@@ -2089,7 +2241,6 @@
                         sheer: regl.prop("sheer"),
                         rotation: regl.prop("rotation"),
                         zoom: regl.prop("zoom"),
-                        zoomCyclic: regl.prop("zoomCyclic"),
                         zoomClamped: regl.prop("zoomClamped"),
                         zoomFactor: regl.prop("zoomFactor"),
                         zoomCenter: regl.prop("zoomCenter"),
@@ -2143,6 +2294,9 @@
                     } else {
                         zoom += demoSpeed;
                     }
+
+                    zoom = zoomMod(zoom);
+
                     regl.clear({
                         color: [0, 0, 0, 0],
                         depth: 1,
@@ -2163,9 +2317,12 @@
                                     offset: [ctrl.x, ctrl.y],
                                     zoom: 0,
                                     zoomClamped: 0.0,
+                                    zoom: 0.0,
                                     zoomFactor: zoomFactors[activeTexture],
                                     sheer: 0,
-                                    zoomCenter: [0, 0],
+                                    zoomCenter: zoomCenters[activeTexture] ?? [
+                                        0, 0,
+                                    ],
                                     rotation: rotation,
                                     escherAngle: -Math.PI / 2.0,
                                     escherScale: Math.pow(2, zoomClamped),
@@ -2181,11 +2338,16 @@
                                     offset: [ctrl.x, ctrl.y],
                                     zoom,
                                     zoomClamped,
+                                    zoom,
                                     zoomFactor: zoomFactors[activeTexture],
                                     sheer: sheers[activeTexture] ?? 0,
-                                    zoomCenter: [0, 0],
+                                    zoomCenter: zoomCenters[activeTexture] ?? [
+                                        0, 0,
+                                    ],
                                     rotation: rotation,
-                                    escherAngle: 0.463776890039444,
+                                    escherAngle:
+                                        0.463776890039444 *
+                                        (orientations[activeTexture] ?? 1),
                                     escherScale: 1.117768667936325,
                                     warp: 1,
                                     plotPolar: 0,
@@ -2199,11 +2361,16 @@
                                     offset: [ctrl.x, ctrl.y],
                                     zoom,
                                     zoomClamped,
+                                    zoom,
                                     zoomFactor: zoomFactors[activeTexture],
                                     sheer: sheers[activeTexture] ?? 0,
-                                    zoomCenter: [0, 0],
+                                    zoomCenter: zoomCenters[activeTexture] ?? [
+                                        0, 0,
+                                    ],
                                     rotation: rotation + ctrl.z,
-                                    escherAngle: ctrl.z,
+                                    escherAngle:
+                                        ctrl.z *
+                                        (orientations[activeTexture] ?? 1),
                                     escherScale: ctrl.w,
                                     warp: 1,
                                     plotPolar: 0,
@@ -2217,9 +2384,12 @@
                                     offset: [ctrl.x, ctrl.y],
                                     zoom,
                                     zoomClamped,
+                                    zoom,
                                     zoomFactor: zoomFactors[activeTexture],
                                     sheer: sheers[activeTexture] ?? 0,
-                                    zoomCenter: [0, 0],
+                                    zoomCenter: zoomCenters[activeTexture] ?? [
+                                        0, 0,
+                                    ],
                                     rotation: rotation,
                                     escherAngle: 0.0,
                                     warp: 1,
