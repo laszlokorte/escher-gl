@@ -2,6 +2,9 @@ precision mediump float;
 
 uniform sampler2D texture;
 
+uniform vec2 extraOffset;
+uniform float rotation;
+
 uniform float zoomFactor;
 uniform vec2 zoomCenter;
 
@@ -41,7 +44,7 @@ void main() {
     vec2 polarOrOriginal = mix(uvPolar, vec2(uvCentered.y * PI / 4.0 * 2.0, uvCentered.x * PI / 4.0), plotPolar);
     vec2 zoomInLog = rot(vec2(1.0, 0.0), -(escherAngle), vec2(0.0, 0.0)) * 0.1 * zoom;
     vec2 rotated = rot(polarOrOriginal + zoomInLog, escherAngle, vec2(0.0));
-    vec2 rotScaled = rotated * (escherScale) - 0.5;
+    vec2 rotScaled = rotated * (escherScale) - 0.5 + extraOffset;
 
     float rad = mod(2.0 * rotScaled.x - uvPolar.y, 1.0) + uvPolar.y;
 
